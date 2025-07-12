@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>늘봄 - 결혼식 전문 사회자 서비스</title>
+    <meta
+      name="description"
+      content="당신의 특별한 날을 더욱 아름답게. 전문 아나운서 사회자들이 진행하는 결혼식, 돌잔치, 기업행사 서비스"
+    />
+    <meta
+      name="keywords"
+      content="결혼식 사회자, 돌잔치 사회자, 기업행사 사회자, 아나운서, 광주 사회자, 늘봄"
+    />
+    <meta property="og:title" content="늘봄 - 결혼식 전문 사회자 서비스" />
+    <meta
+      property="og:description"
+      content="당신의 특별한 날을 더욱 아름답게. 전문 아나운서 사회자들이 진행하는 결혼식, 돌잔치, 기업행사 서비스"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://neulbom2020.com" />
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+
+      /* Date and Time input 전체 영역 클릭 가능하게 만들기 */
+      input[type="date"],
+      input[type="time"] {
+        position: relative;
+        cursor: pointer;
+      }
+
+      input[type="date"]::-webkit-calendar-picker-indicator,
+      input[type="time"]::-webkit-calendar-picker-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: auto;
+        height: auto;
+        color: transparent;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      /* Firefox */
+      input[type="date"]::-moz-focus-inner,
+      input[type="time"]::-moz-focus-inner {
+        border: 0;
+      }
+
+      /* ContentEditable placeholder */
+      [contenteditable][data-placeholder]:empty::before {
+        content: attr(data-placeholder);
+        color: #999;
+        pointer-events: none;
+      }
+      [contenteditable][data-placeholder]:empty:focus::before {
+        content: attr(data-placeholder);
+        color: #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/client/App.tsx"></script>
+  </body>
+</html>
