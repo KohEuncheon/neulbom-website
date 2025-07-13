@@ -2,16 +2,34 @@ import { Header } from "@/components/website/Header";
 import { Footer } from "@/components/website/Footer";
 import { useState, useEffect } from "react";
 
+// API 호출 함수
+const fetchPromotions = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getPromotionList');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('프로모션 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('프로모션 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
 export default function Promotion() {
   const [promotions, setPromotions] = useState<any[]>([]);
   const [selectedPromotion, setSelectedPromotion] = useState<any>(null);
 
   useEffect(() => {
-    // localStorage에서 등록된 프로모션 불러오기
-    const savedPromotions = localStorage.getItem("promotionList");
-    if (savedPromotions) {
-      setPromotions(JSON.parse(savedPromotions));
-    }
+    const loadPromotions = async () => {
+      const promotionData = await fetchPromotions();
+      setPromotions(promotionData);
+    };
+
+    loadPromotions();
   }, []);
 
   return (

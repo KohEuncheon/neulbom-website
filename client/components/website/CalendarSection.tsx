@@ -51,12 +51,12 @@ export function CalendarSection() {
     return new Date(year, month - 1, 1).getDay();
   };
 
-  // 특정 ���짜�� 예�� 가져오기
-  const getReservationsForDate = (day: number) => {
+  // 특정 날짜의 예약 가져오기
+  const getReservationsForDate = (day: number): any[] => {
     const dateStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return confirmedReservations.filter(
       (reservation) => reservation.ceremonyDate === dateStr,
-    );
+    ) as any[];
   };
 
   // 이름 마스킹 함수 - 두번째 글자를 *로
@@ -143,7 +143,7 @@ export function CalendarSection() {
   }
 
   return (
-    <section id="calendar" className="py-16 bg-gray-50">
+    <section id="calendar" className="py-8 bg-white">
       <div className="max-w-4xl mx-auto px-4">
         {/* Section Title */}
         <div className="text-center mb-8">
@@ -242,8 +242,8 @@ export function CalendarSection() {
         </div>
 
         {/* Calendar */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <table className="w-full table-fixed">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-md overflow-hidden">
+          <table className="w-full table-fixed bg-white">
             {/* Header */}
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -383,83 +383,53 @@ export function CalendarSection() {
               </div>
 
               <div className="space-y-4">
-                {(() => {
-                  const reservations = getReservationsForDate(
-                    parseInt(selectedDate.split("-")[2]),
-                  );
-                  // 사회자별로 그룹핑
-                  const groupedByMc = reservations.reduce(
-                    (acc, reservation) => {
-                      if (!acc[reservation.mc]) {
-                        acc[reservation.mc] = [];
-                      }
-                      acc[reservation.mc].push(reservation);
-                      return acc;
-                    },
-                    {} as { [key: string]: any[] },
-                  );
-
-                  // 사회자 순서 정의 (고은천 - 최창은 - 김선익)
-                  const mcOrder = ["고은천", "최창은", "김선익"];
-                  const sortedEntries = Object.entries(groupedByMc).sort(
-                    ([mcNameA], [mcNameB]) => {
-                      const indexA = mcOrder.indexOf(mcNameA);
-                      const indexB = mcOrder.indexOf(mcNameB);
-                      if (indexA === -1 && indexB === -1) return 0;
-                      if (indexA === -1) return 1;
-                      if (indexB === -1) return -1;
-                      return indexA - indexB;
-                    },
-                  );
-
-                  return sortedEntries.map(([mcName, mcReservations]) => {
-                    const mc = mcList.find((mc) => mc.name === mcName);
-                    return (
-                      <div
-                        key={mcName}
-                        className="p-4 border border-gray-200 rounded-lg"
-                      >
-                        <div className="flex items-center mb-3">
-                          <div
-                            className="w-4 h-4 rounded-full mr-2"
-                            style={{
-                              backgroundColor: mc?.profileColor || "#ff6b9d",
-                            }}
-                          ></div>
-                          <span className="font-medium text-gray-900">
-                            {mcName} 사회자
-                          </span>
-                        </div>
-                        <div className="ml-6">
-                          <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                            {mcReservations.map((reservation, idx) => (
-                              <div
-                                key={idx}
-                                className="inline-flex items-center px-2 py-1 rounded-full text-xs text-white whitespace-nowrap"
-                                style={{
-                                  backgroundColor:
-                                    mc?.profileColor || "#ff6b9d",
-                                }}
-                                title={`${reservation.author} - ${reservation.ceremonyTime} - ${reservation.weddingHall}`}
-                              >
-                                {maskName(reservation.author)}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="mt-2 text-xs text-gray-500 space-y-1">
-                            {mcReservations.map((reservation, idx) => (
-                              <div key={idx} className="truncate">
-                                {maskName(reservation.author)} -{" "}
-                                {reservation.ceremonyTime} -{" "}
-                                {reservation.weddingHall}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
+                <table className="w-full text-sm border rounded-lg overflow-hidden">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 w-12">번호</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">제목</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 w-20">작성자</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 w-24">사회자</th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-700 w-24">날짜</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const reservations = getReservationsForDate(parseInt(selectedDate.split("-")[2]));
+                      return reservations.length > 0 ? reservations.map((reservation, idx) => (
+                        <tr key={idx} className="border-b">
+                          <td className="px-2 py-2 text-center">{reservations.length - idx}</td>
+                          <td className="px-4 py-2 text-left">
+                            {reservation.title}
+                            {reservation.status === "확정" && (
+                              <span style={{
+                                display: 'inline-block',
+                                marginLeft: '8px',
+                                padding: '2px 8px',
+                                background: '#bbf7d0',
+                                color: '#166534',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                verticalAlign: 'middle',
+                                border: '1px solid #86efac',
+                              }}>
+                                확정
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 text-center w-20">{maskName(reservation.author)}</td>
+                          <td className="px-2 py-2 text-center w-24">{reservation.mc}</td>
+                          <td className="px-2 py-2 text-center w-24">{reservation.ceremonyDate}</td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan={5} className="px-2 py-8 text-center text-gray-500">예약된 문의가 없습니다.</td>
+                        </tr>
+                      );
+                    })()}
+                  </tbody>
+                </table>
               </div>
 
               <div className="flex justify-center mt-6">

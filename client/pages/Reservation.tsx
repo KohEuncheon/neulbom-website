@@ -3,6 +3,55 @@ import { Footer } from "@/components/website/Footer";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
+// API 호출 함수들
+const fetchInquiries = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getReservations');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('문의 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('문의 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
+const fetchMCs = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getMCs');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('사회자 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('사회자 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
+const saveInquiry = async (inquiryData: any) => {
+  try {
+    const response = await fetch('/.netlify/functions/saveReservation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(inquiryData),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('문의 저장 오류:', error);
+    return false;
+  }
+};
+
 export default function Reservation() {
   const [formData, setFormData] = useState({
     title: "",
@@ -28,7 +77,7 @@ export default function Reservation() {
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -36,18 +85,18 @@ export default function Reservation() {
   const [mcList, setMcList] = useState<string[]>([]);
 
   useEffect(() => {
-    const savedMCs = localStorage.getItem("registeredMCs");
-    if (savedMCs) {
-      const registeredMCs = JSON.parse(savedMCs);
-      const mcNames = registeredMCs.map((mc: any) => mc.name);
+    const loadData = async () => {
+      // 사회자 목록 불러오기
+      const mcData = await fetchMCs();
+      const mcNames = mcData.map((mc: any) => mc.name);
       setMcList(mcNames);
-    }
 
-    // 문의 목록 불러오기
-    const savedInquiries = localStorage.getItem("customerInquiries");
-    if (savedInquiries) {
-      setInquiryList(JSON.parse(savedInquiries));
-    }
+      // 문의 목록 불러오기
+      const inquiryData = await fetchInquiries();
+      setInquiryList(inquiryData);
+    };
+
+    loadData();
   }, []);
 
   const handleInquiryClick = (inquiry: any) => {
@@ -100,7 +149,7 @@ export default function Reservation() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 새로운 문의글 생성
@@ -111,38 +160,40 @@ export default function Reservation() {
       status: "접수",
     };
 
-    // localStorage에 저장
-    const existingInquiries = localStorage.getItem("customerInquiries");
-    const inquiries = existingInquiries ? JSON.parse(existingInquiries) : [];
-    inquiries.unshift(newInquiry); // 최신글이 위로
-    localStorage.setItem("customerInquiries", JSON.stringify(inquiries));
+    // API를 통해 저장
+    const success = await saveInquiry(newInquiry);
 
-    // 상태 업데이트하여 목록 새로고침
-    setInquiryList(inquiries);
+    if (success) {
+      // 상태 업데이트하여 목록 새로고침
+      const updatedInquiries = await fetchInquiries();
+      setInquiryList(updatedInquiries);
 
-    console.log("예약 문의 데이터:", newInquiry);
-    alert(
-      "✅ 예약 문의가 정상적으로 접수되었습니다!\n\n💝 소중한 문의 감사드리며, 빠른 시일 내에 연락드리겠습니다.",
-    );
+      console.log("예약 문의 데이터:", newInquiry);
+      alert(
+        "✅ 예약 문의가 정상적으로 접수되었습니다!\n\n💝 소중한 문의 감사드리며, 빠른 시일 내에 연락드리겠습니다.",
+      );
 
-    // 폼 초기화
-    setFormData({
-      title: "",
-      password: "",
-      author: "",
-      spouse: "",
-      phone: "",
-      mc: "",
-      weddingHall: "",
-      ceremonyType: "",
-      secondPart: "",
-      ceremonyDate: "",
-      ceremonyTime: "",
-      howDidYouHear: "",
-      linkUrl: "",
-      otherNotes: "",
-    });
-    setShowLinkInput(false);
+      // 폼 초기화
+      setFormData({
+        title: "",
+        password: "",
+        author: "",
+        spouse: "",
+        phone: "",
+        mc: "",
+        weddingHall: "",
+        ceremonyType: "",
+        secondPart: "",
+        ceremonyDate: "",
+        ceremonyTime: "",
+        howDidYouHear: "",
+        linkUrl: "",
+        otherNotes: "",
+      });
+      setShowLinkInput(false);
+    } else {
+      alert("문의 접수에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
   // 페이지네이션 계산
@@ -378,18 +429,14 @@ export default function Reservation() {
                     예식시간 *
                   </label>
                   <input
-                    type="time"
+                    type="text"
                     name="ceremonyTime"
                     value={formData.ceremonyTime}
                     onChange={handleInputChange}
                     required
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="14:00"
-                    style={{
-                      position: "relative",
-                      width: "100%",
-                      cursor: "pointer",
-                    }}
+                    placeholder="예: 오후 1시, 14:00 등"
+                    style={{ position: "relative", width: "100%", cursor: "text" }}
                   />
                 </div>
               </div>
@@ -493,22 +540,14 @@ export default function Reservation() {
               예약 문의 현황
             </h2>
 
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
+              <table className="w-full table-fixed text-sm text-gray-700 font-normal bg-white">
+                <thead className="bg-gray-50 border-b sticky top-0 z-10">
                   <tr>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 border-b">
-                      번호
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 border-b">
-                      제목
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 border-b">
-                      작성자
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 border-b">
-                      날짜
-                    </th>
+                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-16 bg-gray-50">번호</th>
+                    <th className="px-4 pl-4 py-2 text-left font-medium text-gray-700 bg-gray-50">제목</th>
+                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-28 bg-gray-50" style={{ whiteSpace: 'nowrap' }}>작성자</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 w-28 bg-gray-50" style={{ whiteSpace: 'nowrap' }}>작성일</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -516,13 +555,11 @@ export default function Reservation() {
                     currentInquiries.map((inquiry, index) => (
                       <tr
                         key={inquiry.id}
-                        className="border-b hover:bg-gray-50 cursor-pointer"
+                        className="border-b hover:bg-gray-50 cursor-pointer h-10"
                         onClick={() => handleInquiryClick(inquiry)}
                       >
-                        <td className="px-4 py-3 text-center text-sm text-gray-700">
-                          {inquiryList.length - (startIndex + index)}
-                        </td>
-                        <td className="px-4 py-3 text-left text-sm text-gray-700">
+                        <td className="px-2 py-2 text-center w-16 h-10 align-middle">{inquiryList.length - (startIndex + index)}</td>
+                        <td className="px-4 pl-4 py-2 text-left h-10 align-middle">
                           <div className="flex items-center space-x-2">
                             <span>{inquiry.title}</span>
                             {inquiry.status === "확정" && (
@@ -530,14 +567,15 @@ export default function Reservation() {
                                 확정
                               </span>
                             )}
+                            {inquiry.status === "예약완료" && (
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                                예약완료
+                              </span>
+                            )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-700">
-                          {inquiry.author}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-700">
-                          {inquiry.date}
-                        </td>
+                        <td className="px-2 py-2 text-center w-28 h-10 align-middle" style={{ whiteSpace: 'nowrap' }}>{inquiry.author}</td>
+                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.date || ''}</td>
                       </tr>
                     ))
                   ) : inquiryList.length === 0 ? (
@@ -556,48 +594,58 @@ export default function Reservation() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center mt-6 space-x-2">
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className={`px-2 py-1 ${
-                    currentPage === 1
-                      ? "text-gray-400 cursor-not-allowed"
-                      : "text-gray-700 hover:text-pink-500"
-                  }`}
-                >
-                  ◀
-                </button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-2 py-1 rounded text-sm ${
-                        currentPage === page
-                          ? "bg-pink-500 text-white"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ),
-                )}
-
-                <button
-                  onClick={() =>
-                    setCurrentPage(Math.min(totalPages, currentPage + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className={`px-2 py-1 ${
-                    currentPage === totalPages
-                      ? "text-gray-400 cursor-not-allowed"
-                      : "text-gray-700 hover:text-pink-500"
-                  }`}
-                >
-                  ▶
-                </button>
+              <div className="flex justify-center mt-6">
+                <div className="bg-gray-100 rounded-lg py-2 px-4 shadow-sm flex space-x-2">
+                  {/* 페이지네이션 버튼들 기존 코드 그대로 이 안에 위치 */}
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-2 py-1 text-gray-700 hover:text-pink-500"
+                  >
+                    맨처음
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 10))}
+                    disabled={currentPage <= 10}
+                    className="px-2 py-1 text-gray-700 hover:text-pink-500"
+                  >
+                    -10
+                  </button>
+                  {(() => {
+                    const pageNumbers = [];
+                    let start = Math.max(1, currentPage - 2);
+                    let end = Math.min(totalPages, start + 4);
+                    if (end - start < 4) {
+                      start = Math.max(1, end - 4);
+                    }
+                    for (let i = start; i <= end; i++) {
+                      pageNumbers.push(i);
+                    }
+                    return pageNumbers.map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-2 py-1 rounded text-sm ${currentPage === page ? "bg-pink-500 text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                      >
+                        {page}
+                      </button>
+                    ));
+                  })()}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 10))}
+                    disabled={currentPage > totalPages - 10}
+                    className="px-2 py-1 text-gray-700 hover:text-pink-500"
+                  >
+                    +10
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-2 py-1 text-gray-700 hover:text-pink-500"
+                  >
+                    맨끝
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -610,9 +658,9 @@ export default function Reservation() {
               <div className="w-2 h-2 bg-black rounded-full"></div>
             </div>
 
-            <h2 className="text-xl font-medium text-gray-800 mb-8">
+            {/* <h2 className="text-xl font-medium text-gray-800 mb-8">
               고은천 사회자 직접 상담하기
-            </h2>
+            </h2> */}
 
             <div className="flex justify-center items-center space-x-8 md:space-x-12">
               <a
@@ -630,7 +678,6 @@ export default function Reservation() {
                 </div>
                 <span className="text-sm text-gray-600">전화</span>
               </a>
-
               <a
                 href="https://instagram.com"
                 target="_blank"
@@ -647,24 +694,6 @@ export default function Reservation() {
                   </svg>
                 </div>
                 <span className="text-sm text-gray-600">인스타그램</span>
-              </a>
-
-              <a
-                href="https://open.kakao.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center space-y-2 hover:opacity-80 transition-opacity"
-              >
-                <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-gray-800"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 2C6.48 2 2 5.58 2 10c0 2.89 2.25 5.43 5.64 7.05L6.5 20.5c-.2.2-.1.5.2.4l3.5-1.75c.6.1 1.2.15 1.8.15 5.52 0 10-3.58 10-8S17.52 2 12 2z" />
-                  </svg>
-                </div>
-                <span className="text-sm text-gray-600">카카오톡</span>
               </a>
             </div>
           </div>

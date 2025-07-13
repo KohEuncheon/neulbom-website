@@ -183,46 +183,25 @@ export default function AdminReservations() {
           </div>
 
           {/* Table */}
-          <div className="bg-white border border-gray-300 rounded">
-            <table className="admin-table">
+          <div className="bg-white border border-gray-300 rounded overflow-x-auto min-w-[900px]">
+            <table className="w-full table-fixed">
               <thead>
                 <tr>
-                  <th className="w-16">번호</th>
-                  <th className="w-20">신청자</th>
-                  <th className="w-28">연락처</th>
-                  <th className="w-20">행사종류</th>
-                  <th className="w-24">행사일자</th>
-                  <th className="w-20">선호사회자</th>
-                  <th className="w-20">상태</th>
-                  <th className="w-24">신청일</th>
-                  <th className="w-20">관리</th>
+                  <th className="w-16 text-center h-12 px-2 text-sm font-medium text-gray-700 bg-gray-50" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>번호</th>
+                  <th className="w-64 text-left h-12 px-2 text-sm font-medium text-gray-700 bg-gray-50" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>제목</th>
+                  <th className="w-20 text-center h-12 px-2 text-sm font-medium text-gray-700 bg-gray-50" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>작성자</th>
+                  <th className="w-24 text-right h-12 px-2 text-sm font-medium text-gray-700 bg-gray-50" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>사회자</th>
+                  <th className="w-36 text-center h-12 px-2 text-sm font-medium text-gray-700 bg-gray-50 pr-6" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>날짜</th>
                 </tr>
               </thead>
               <tbody>
-                {reservations.map((reservation) => (
-                  <tr key={reservation.id}>
-                    <td>{reservation.id}</td>
-                    <td>{reservation.name}</td>
-                    <td>{reservation.phone}</td>
-                    <td>{reservation.eventType}</td>
-                    <td>{reservation.eventDate}</td>
-                    <td>{reservation.mcPreference}</td>
-                    <td>
-                      <span className={getStatusStyle(reservation.status)}>
-                        {reservation.status}
-                      </span>
-                    </td>
-                    <td>{reservation.createdAt}</td>
-                    <td>
-                      <div className="flex space-x-1">
-                        <button className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                          상세
-                        </button>
-                        <button className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
-                          처리
-                        </button>
-                      </div>
-                    </td>
+                {reservations.map((reservation, idx) => (
+                  <tr key={reservation.id} className="h-12 align-middle border-b hover:bg-gray-50" style={{height: '48px'}}>
+                    <td className="w-16 text-center h-12 px-2 text-sm text-gray-700" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{idx + 1}</td>
+                    <td className="w-64 text-left h-12 px-2 text-sm text-gray-700" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reservation.eventType + ' 예약 문의입니다.'}</td>
+                    <td className="w-20 text-center h-12 px-2 text-sm text-gray-700" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reservation.name}</td>
+                    <td className="w-24 text-right h-12 px-2 text-sm text-gray-700" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(reservation.mcPreference || '').replace(/ /g, '\u00A0')}</td>
+                    <td className="w-36 text-center h-12 px-2 text-sm text-gray-700 pr-6" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reservation.eventDate}</td>
                   </tr>
                 ))}
               </tbody>
@@ -262,19 +241,19 @@ export default function AdminReservations() {
             <Button variant="ghost" size="sm" disabled>
               <ChevronLeft className="w-4 h-4" />
             </Button>
-
             {[1, 2, 3, 4, 5].map((page) => (
-              <Button
+              <button
                 key={page}
-                variant={page === currentPage ? "default" : "ghost"}
-                size="sm"
                 onClick={() => setCurrentPage(page)}
-                className={page === currentPage ? "bg-gray-800 text-white" : ""}
+                className={`w-8 h-8 rounded border text-sm font-medium transition-colors
+                  ${page === currentPage
+                    ? "bg-pink-100 text-pink-600 border-pink-200"
+                    : "bg-gray-100 text-gray-500 border-gray-200 hover:bg-pink-50 hover:text-pink-500"}
+                `}
               >
                 {page}
-              </Button>
+              </button>
             ))}
-
             <Button variant="ghost" size="sm">
               <ChevronRight className="w-4 h-4" />
             </Button>

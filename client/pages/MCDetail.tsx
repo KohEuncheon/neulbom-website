@@ -3,6 +3,23 @@ import { Footer } from "@/components/website/Footer";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
+// API 호출 함수
+const fetchMCs = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getMCs');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('사회자 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('사회자 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
 export default function MCDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -10,15 +27,18 @@ export default function MCDetail() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedMCs = localStorage.getItem("registeredMCs");
-    if (savedMCs && id) {
-      const registeredMCs = JSON.parse(savedMCs);
-      const foundMc = registeredMCs.find((mc: any) => mc.id.toString() === id);
-      if (foundMc) {
-        setMcData(foundMc);
+    const loadMCData = async () => {
+      const registeredMCs = await fetchMCs();
+      if (registeredMCs && id) {
+        const foundMc = registeredMCs.find((mc: any) => mc.id.toString() === id);
+        if (foundMc) {
+          setMcData(foundMc);
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    loadMCData();
   }, [id]);
 
   if (loading) {

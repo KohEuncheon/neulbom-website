@@ -3,13 +3,24 @@
   functions = "netlify/functions"
   publish = "dist/spa"
 
-
 [functions]
   external_node_modules = ["express"]
   node_bundler = "esbuild"
   
+# API 라우팅 개선
 [[redirects]]
-  force = true
   from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
-  to = "/.netlify/functions/api/:splat"
+
+# Netlify Functions 직접 접근
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA 라우팅 (모든 다른 경로는 index.html로)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

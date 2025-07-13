@@ -1,34 +1,41 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+// API 호출 함수
+const fetchBanners = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getBannerList');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('배너 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('배너 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
 export function BannerSlide() {
   const [banners, setBanners] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     // 배너 목록 불러오기
-    const loadBanners = () => {
-      const savedBanners = localStorage.getItem("bannerList");
-      if (savedBanners) {
-        const bannerList = JSON.parse(savedBanners);
-        setBanners(bannerList);
-      }
+    const loadBanners = async () => {
+      const bannerData = await fetchBanners();
+      setBanners(bannerData);
     };
 
     loadBanners();
 
-    // storage 변경 감지
-    const handleStorageChange = () => {
-      loadBanners();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    // 브라우저가 focus 되었을 때도 재로딩
-    window.addEventListener("focus", loadBanners);
+    // 주기적으로 배너 목록 새로고침 (5분마다)
+    const interval = setInterval(loadBanners, 5 * 60 * 1000);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("focus", loadBanners);
+      clearInterval(interval);
     };
   }, []);
 

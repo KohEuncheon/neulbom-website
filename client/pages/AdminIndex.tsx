@@ -18,6 +18,169 @@ import React, { useState, useEffect } from "react";
 import { Header } from "@/components/website/Header";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { generateSampleInquiries } from "@/utils/generateSampleData";
+import * as XLSX from 'xlsx';
+
+// API 호출 함수들
+const fetchInquiries = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getReservations');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('문의 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('문의 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
+const fetchMCs = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getMCs');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('사회자 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('사회자 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
+const fetchBanners = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getBannerList');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('배너 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('배너 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
+const fetchPromotions = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getPromotionList');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('프로모션 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('프로모션 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
+const fetchTips = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getTipsList');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('팁 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('팁 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
+// 데이터 저장 함수들
+const saveInquiry = async (inquiryData: any) => {
+  try {
+    const response = await fetch('/.netlify/functions/saveReservation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(inquiryData),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('문의 저장 오류:', error);
+    return false;
+  }
+};
+
+const saveMC = async (mcData: any) => {
+  try {
+    const response = await fetch('/.netlify/functions/saveMC', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(mcData),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('사회자 저장 오류:', error);
+    return false;
+  }
+};
+
+const saveBanner = async (bannerData: any) => {
+  try {
+    const response = await fetch('/.netlify/functions/saveBanner', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bannerData),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('배너 저장 오류:', error);
+    return false;
+  }
+};
+
+const savePromotion = async (promotionData: any) => {
+  try {
+    const response = await fetch('/.netlify/functions/savePromotion', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(promotionData),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('프로모션 저장 오류:', error);
+    return false;
+  }
+};
+
+const saveTips = async (tipsData: any) => {
+  try {
+    const response = await fetch('/.netlify/functions/saveTips', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(tipsData),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('팁 저장 오류:', error);
+    return false;
+  }
+};
 
 export default function AdminIndex() {
   const [currentTab, setCurrentTab] = useState("inquiries");
@@ -65,7 +228,7 @@ export default function AdminIndex() {
   const [editingBanner, setEditingBanner] = useState<any>(null);
   const itemsPerPage = 20;
 
-  // 로그인 확인 및 데이��� 로드
+  // 로그인 확인 및 데이터 로드
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isAdminLoggedIn");
     const expirationTime = localStorage.getItem("adminLoginExpiration");
@@ -80,7 +243,6 @@ export default function AdminIndex() {
       localStorage.removeItem("adminLoginExpiration");
       window.location.href = "/";
     } else {
-      // 로그인이 유효하�� 시간을 7일 더 연장
       const newExpirationTime = new Date().getTime() + 7 * 24 * 60 * 60 * 1000;
       localStorage.setItem(
         "adminLoginExpiration",
@@ -88,43 +250,70 @@ export default function AdminIndex() {
       );
     }
 
-    // localStorage에서 등록된 사회자 목록 불러오기
-    const savedMCs = localStorage.getItem("registeredMCs");
-    if (savedMCs) {
-      setMcList(JSON.parse(savedMCs));
-    }
+    // API에서 데이터 불러오기
+    const loadData = async () => {
+      // 사회자 목록 불러오기
+      const mcData = await fetchMCs();
+      setMcList(mcData);
 
-    // localStorage에서 문의 데이터 불러오기
-    const savedInquiries = localStorage.getItem("customerInquiries");
-    if (savedInquiries) {
-      setInquiries(JSON.parse(savedInquiries));
-    } else {
-      // 문의 데이터가 없을 때만 샘플 데이터 생성
-      const sampleInquiries = generateSampleInquiries();
-      setInquiries(sampleInquiries);
-      localStorage.setItem(
-        "customerInquiries",
-        JSON.stringify(sampleInquiries),
-      );
-    }
+      // 문의 데이터 불러오기 및 매핑 규칙 적용
+      const inquiryData = await fetchInquiries();
+      if (inquiryData.length > 0) {
+        // 매핑 규칙 적용 (엑셀 업로드와 동일하게)
+        const mapped = inquiryData.map((item: any, idx: number) => {
+          // 2부 여부
+          let secondPart = item.secondPart;
+          if (typeof secondPart === 'boolean') {
+            secondPart = secondPart ? '2부 있음' : '2부 없음';
+          } else if (typeof secondPart === 'string') {
+            if (secondPart.toLowerCase() === 'true') secondPart = '2부 있음';
+            else if (secondPart.toLowerCase() === 'false') secondPart = '2부 없음';
+          }
+          // 예식날짜/시간 분리
+          let ceremonyDate = item.ceremonyDate || '';
+          let ceremonyTime = item.ceremonyTime || '';
+          if (item.ceremonyDate && !item.ceremonyTime) {
+            const dateStr = item.ceremonyDate.toString();
+            const match = dateStr.match(/(\d{4}-\d{2}-\d{2})[ T]?(\d{2}:\d{2})?/);
+            if (match) {
+              ceremonyDate = match[1];
+              ceremonyTime = match[2] || '';
+            }
+          }
+          // 상태 매핑
+          let status = item.status;
+          if (status === '예약완료') status = '확정';
+          else if (status === '문의') status = '문의';
+          // 작성자/예식종류 등은 그대로
+          return {
+            ...item,
+            author: item.author || '',
+            ceremonyType: item.ceremonyType || '',
+            secondPart,
+            ceremonyDate,
+            ceremonyTime,
+            status,
+          };
+        });
+        setInquiries(mapped);
+      } else {
+        setInquiries([]);
+      }
 
-    // localStorage에서 배�� 데이터 불러오기
-    const savedBanners = localStorage.getItem("bannerList");
-    if (savedBanners) {
-      setBannerList(JSON.parse(savedBanners));
-    }
+      // 배너 데이터 불러오기
+      const bannerData = await fetchBanners();
+      setBannerList(bannerData);
 
-    // localStorage에서 프로모�� 데이터 불러오기
-    const savedPromotions = localStorage.getItem("promotionList");
-    if (savedPromotions) {
-      setPromotionList(JSON.parse(savedPromotions));
-    }
+      // 프로모션 데이터 불러오기
+      const promotionData = await fetchPromotions();
+      setPromotionList(promotionData);
 
-    // localStorage에서 팁 데이터 불러오기
-    const savedTips = localStorage.getItem("tipsList");
-    if (savedTips) {
-      setTipsList(JSON.parse(savedTips));
-    }
+      // 팁 데이터 불러오기
+      const tipsData = await fetchTips();
+      setTipsList(tipsData);
+    };
+
+    loadData();
   }, []);
 
   const handleLogout = () => {
@@ -210,9 +399,15 @@ export default function AdminIndex() {
       websiteUrl: mcFormData.websiteUrl,
     };
 
-    const updatedMcList = [...mcList, newMc];
-    setMcList(updatedMcList);
-    localStorage.setItem("registeredMCs", JSON.stringify(updatedMcList));
+    // API로 저장
+    const success = await saveMC(newMc);
+    if (success) {
+      const updatedMcList = [...mcList, newMc];
+      setMcList(updatedMcList);
+      alert("사회자가 성공적으로 등록되었습니다.");
+    } else {
+      alert("사회자 등록에 실패했습니다. 다시 시도해주세요.");
+    }
 
     setShowMcModal(false);
     setMcFormData({
@@ -322,7 +517,7 @@ export default function AdminIndex() {
       ),
     ].join("\n");
 
-    // BOM ���가 (한글 깨짐 방지)
+    // BOM 추가 (한글 깨짐 방지)
     const csvWithBOM = "\uFEFF" + csvContent;
 
     // 파일 다운로드
@@ -343,18 +538,25 @@ export default function AdminIndex() {
   };
 
   // 문의 수정 처리
-  const handleInquiryUpdate = () => {
+  const handleInquiryUpdate = async () => {
     const updatedInquiries = inquiries.map((inquiry) =>
       inquiry.id === editingInquiry?.id ? editingInquiry : inquiry,
     );
     setInquiries(updatedInquiries);
-    localStorage.setItem("customerInquiries", JSON.stringify(updatedInquiries));
+    
+    // API로 저장 (수정된 문의를 다시 저장)
+    const success = await saveInquiry(editingInquiry);
+    if (success) {
+      alert("문의가 성공적으로 수정되었습니다.");
+    } else {
+      alert("문의 수정에 실패했습니다. 다시 시도해주세요.");
+    }
 
     setShowInquiryEdit(false);
     setEditingInquiry(null);
   };
 
-  // 배너 수�� 처리
+  // 배너 수정 처리
   const handleBannerEdit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -408,16 +610,19 @@ export default function AdminIndex() {
   };
 
   // 사회자 삭제 처리
-  const handleMcDelete = () => {
+  const handleMcDelete = async () => {
     const updatedMcList = mcList.filter((mc) => mc.id !== mcToDelete?.id);
     setMcList(updatedMcList);
-    localStorage.setItem("registeredMCs", JSON.stringify(updatedMcList));
+    
+    // 삭제는 현재 API에서 지원하지 않으므로, 
+    // 로컬 상태만 업데이트하고 나중에 전체 목록을 다시 불러오는 방식으로 처리
+    alert("사회자가 삭제되었습니다.");
 
     setShowDeleteConfirm(false);
     setMcToDelete(null);
   };
 
-  const handlePromotionSubmit = (e: React.FormEvent) => {
+  const handlePromotionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newPromotion = {
@@ -429,9 +634,15 @@ export default function AdminIndex() {
         .split("T")[0],
     };
 
-    const updatedPromotionList = [...promotionList, newPromotion];
-    setPromotionList(updatedPromotionList);
-    localStorage.setItem("promotionList", JSON.stringify(updatedPromotionList));
+    // API로 저장
+    const success = await savePromotion(newPromotion);
+    if (success) {
+      const updatedPromotionList = [...promotionList, newPromotion];
+      setPromotionList(updatedPromotionList);
+      alert("프로모션이 성공적으로 등록되었습니다.");
+    } else {
+      alert("프로모션 등록에 실패했습니다. 다시 시도해주세요.");
+    }
 
     setShowPromotionModal(false);
     setPromotionFormData({
@@ -440,11 +651,11 @@ export default function AdminIndex() {
     });
   };
 
-  const handleBannerSubmit = (e: React.FormEvent) => {
+  const handleBannerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const newBanner = {
         id: bannerList.length + 1,
         title: bannerFormData.title,
@@ -455,9 +666,15 @@ export default function AdminIndex() {
           .split("T")[0],
       };
 
-      const updatedBannerList = [...bannerList, newBanner];
-      setBannerList(updatedBannerList);
-      localStorage.setItem("bannerList", JSON.stringify(updatedBannerList));
+      // API로 저장
+      const success = await saveBanner(newBanner);
+      if (success) {
+        const updatedBannerList = [...bannerList, newBanner];
+        setBannerList(updatedBannerList);
+        alert("배너가 성공적으로 등록되었습니다.");
+      } else {
+        alert("배너 등록에 실패했습니다. 다시 시도해주세요.");
+      }
 
       setShowBannerModal(false);
       setBannerFormData({
@@ -480,9 +697,15 @@ export default function AdminIndex() {
           .split("T")[0],
       };
 
-      const updatedBannerList = [...bannerList, newBanner];
-      setBannerList(updatedBannerList);
-      localStorage.setItem("bannerList", JSON.stringify(updatedBannerList));
+      // API로 저장
+      const success = await saveBanner(newBanner);
+      if (success) {
+        const updatedBannerList = [...bannerList, newBanner];
+        setBannerList(updatedBannerList);
+        alert("배너가 성공적으로 등록되었습니다.");
+      } else {
+        alert("배너 등록에 실패했습니다. 다시 시도해주세요.");
+      }
 
       setShowBannerModal(false);
       setBannerFormData({
@@ -493,7 +716,7 @@ export default function AdminIndex() {
     }
   };
 
-  const handleTipsSubmit = (e: React.FormEvent) => {
+  const handleTipsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newTip = {
@@ -505,9 +728,15 @@ export default function AdminIndex() {
         .split("T")[0],
     };
 
-    const updatedTipsList = [...tipsList, newTip];
-    setTipsList(updatedTipsList);
-    localStorage.setItem("tipsList", JSON.stringify(updatedTipsList));
+    // API로 저장
+    const success = await saveTips(newTip);
+    if (success) {
+      const updatedTipsList = [...tipsList, newTip];
+      setTipsList(updatedTipsList);
+      alert("안내&TIP이 성공적으로 등록되었습니다.");
+    } else {
+      alert("안내&TIP 등록에 실패했습니다. 다시 시도해주세요.");
+    }
 
     setShowTipsModal(false);
     setTipsFormData({
@@ -532,8 +761,136 @@ export default function AdminIndex() {
         const pagedInquiries = sortedInquiries.slice(startIdx, endIdx);
         return (
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
               <h1 className="text-2xl font-bold">문의 관리</h1>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  id="excel-upload"
+                  style={{ display: 'none' }}
+                  onChange={handleExcelUpload}
+                />
+                <Button
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  onClick={() => document.getElementById('excel-upload').click()}
+                >
+                  📁 엑셀 업로드
+                </Button>
+                <Button
+                  onClick={exportToExcel}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  📊 엑셀 EXPORT
+                </Button>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border max-w-4xl mx-auto">
+              <table className="w-full table-fixed">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="w-16 text-center px-2 py-2 text-xs font-semibold text-gray-700">#</th>
+                    <th className="w-auto text-left px-2 py-2 text-xs font-semibold text-gray-700">제목</th>
+                    <th className="w-32 text-center px-2 py-2 text-xs font-semibold text-gray-700">사회자</th>
+                    <th className="w-20 text-center px-2 py-2 text-xs font-semibold text-gray-700">작성자</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 w-28 bg-gray-50" style={{ whiteSpace: 'nowrap' }}>예식 날짜</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedInquiries.length > 0 ? (
+                    pagedInquiries.map((inquiry, index) => (
+                      <tr
+                        key={inquiry.id}
+                        className="border-b hover:bg-gray-50 cursor-pointer h-10"
+                        onClick={() => handleInquiryClick(inquiry)}
+                      >
+                        <td className="w-16 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap">{sortedInquiries.length - (startIdx + index)}</td>
+                        <td className="text-left px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap overflow-hidden text-ellipsis">
+                          {inquiry.title}
+                          {inquiry.status === "확정" && (
+                            <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded text-[10px] font-semibold border border-green-200 align-middle">확정</span>
+                          )}
+                        </td>
+                        <td className="w-32 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap">{inquiry.mc || "-"}</td>
+                        <td className="w-20 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.author}</td>
+                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.ceremonyDate || ''}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500 text-xs">등록된 문의가 없습니다.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* 페이지네이션 UI */}
+            <div className="flex justify-center items-center mt-4 space-x-2">
+              <Button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                variant="outline"
+                size="sm"
+              >
+                맨처음
+              </Button>
+              <Button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 10))}
+                disabled={currentPage <= 10}
+                variant="outline"
+                size="sm"
+              >
+                -10
+              </Button>
+              {(() => {
+                const pageNumbers = [];
+                let start = Math.max(1, currentPage - 2);
+                let end = Math.min(totalPages, start + 4);
+                if (end - start < 4) {
+                  start = Math.max(1, end - 4);
+                }
+                for (let i = start; i <= end; i++) {
+                  pageNumbers.push(i);
+                }
+                return pageNumbers.map((page) => (
+                  <Button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    className={currentPage === page ? "bg-pink-500 text-white" : ""}
+                  >
+                    {page}
+                  </Button>
+                ));
+              })()}
+              <Button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 10))}
+                disabled={currentPage > totalPages - 10}
+                variant="outline"
+                size="sm"
+              >
+                +10
+              </Button>
+              <Button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                variant="outline"
+                size="sm"
+              >
+                맨끝
+              </Button>
+            </div>
+          </div>
+        );
+
+      case "mcs":
+        return (
+          <div>
+            <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
+              <h1 className="text-2xl font-bold">사회자 관리</h1>
               <Button
                 onClick={exportToExcel}
                 variant="outline"
@@ -543,121 +900,7 @@ export default function AdminIndex() {
               </Button>
             </div>
 
-            <div className="bg-white rounded-lg border">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                      번호
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                      제목
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                      작성자
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                      사회자
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                      날짜
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                      상태
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedInquiries.length > 0 ? (
-                    pagedInquiries.map((inquiry, index) => (
-                      <tr
-                        key={inquiry.id}
-                        className="border-b hover:bg-gray-50 cursor-pointer"
-                        onClick={() => handleInquiryClick(inquiry)}
-                      >
-                        <td className="px-4 py-3 text-center text-sm text-gray-700">
-                          {sortedInquiries.length - (startIdx + index)}
-                        </td>
-                        <td className="px-4 py-3 text-left text-sm text-gray-700">
-                          {inquiry.title}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-700">
-                          {inquiry.author}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-700">
-                          {inquiry.mc || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-700">
-                          {inquiry.date}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm">
-                          <Badge
-                            variant={
-                              inquiry.status === "접수"
-                                ? "destructive"
-                                : inquiry.status === "처리중"
-                                ? "default"
-                                : "secondary"
-                            }
-                          >
-                            {inquiry.status}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                                          <td
-                      colSpan={6}
-                      className="px-4 py-8 text-center text-gray-500"
-                    >
-                      등록된 문의가 없습니다.
-                    </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {/* 페이지네이션 UI */}
-            <div className="flex justify-center items-center mt-4 space-x-2">
-              <Button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                variant="outline"
-                size="sm"
-              >
-                이전
-              </Button>
-              <span className="mx-2 text-sm">
-                {currentPage} / {totalPages}
-              </span>
-              <Button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                variant="outline"
-                size="sm"
-              >
-                다음
-              </Button>
-            </div>
-          </div>
-        );
-
-      case "mcs":
-        return (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold">사회자 관리</h1>
-              <Button
-                className="bg-pink-500 hover:bg-pink-600"
-                onClick={() => setShowMcModal(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                사회자 추가
-              </Button>
-            </div>
-
-            <div className="bg-white rounded-lg border">
+            <div className="bg-white rounded-lg border max-w-4xl mx-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -758,18 +1001,18 @@ export default function AdminIndex() {
       case "banners":
         return (
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
               <h1 className="text-2xl font-bold">배너 관리</h1>
               <Button
-                className="bg-pink-500 hover:bg-pink-600"
-                onClick={() => setShowBannerModal(true)}
+                onClick={exportToExcel}
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                배너 추가
+                📊 엑셀 EXPORT
               </Button>
             </div>
 
-            <div className="bg-white rounded-lg border">
+            <div className="bg-white rounded-lg border max-w-4xl mx-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -850,18 +1093,18 @@ export default function AdminIndex() {
       case "promotions":
         return (
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
               <h1 className="text-2xl font-bold">프로모션 관리</h1>
               <Button
-                className="bg-pink-500 hover:bg-pink-600"
-                onClick={() => setShowPromotionModal(true)}
+                onClick={exportToExcel}
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                프로모션 추가
+                📊 엑셀 EXPORT
               </Button>
             </div>
 
-            <div className="bg-white rounded-lg border">
+            <div className="bg-white rounded-lg border max-w-4xl mx-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -958,18 +1201,18 @@ export default function AdminIndex() {
       case "tips":
         return (
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
               <h1 className="text-2xl font-bold">안내&TIP 관리</h1>
               <Button
-                className="bg-pink-500 hover:bg-pink-600"
-                onClick={() => setShowTipsModal(true)}
+                onClick={exportToExcel}
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                안내&TIP 추가
+                📊 엑셀 EXPORT
               </Button>
             </div>
 
-            <div className="bg-white rounded-lg border">
+            <div className="bg-white rounded-lg border max-w-4xl mx-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -1064,7 +1307,7 @@ export default function AdminIndex() {
     }
   };
 
-  // 모달 ���더��� 함수들
+  // 모달 더미 함수들
   const renderMcModal = () => {
     if (!showMcModal) return null;
 
@@ -1194,7 +1437,7 @@ export default function AdminIndex() {
                       introduction: value,
                     })
                   }
-                  placeholder="사회자 ���개를 입력하세요..."
+                  placeholder="사회자 소개를 입력하세요..."
                   className="w-full"
                 />
               </div>
@@ -1306,7 +1549,7 @@ export default function AdminIndex() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  프���필 이미지:
+                  프로필 이미지:
                 </label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                   <input
@@ -1370,7 +1613,7 @@ export default function AdminIndex() {
                       introduction: value,
                     })
                   }
-                  placeholder="사회자 ��개를 입력하세요..."
+                  placeholder="사회자 소개를 입력하세요..."
                   className="w-full"
                 />
               </div>
@@ -1447,7 +1690,7 @@ export default function AdminIndex() {
             <div className="mb-6">
               <p className="text-gray-700 text-center">
                 <span className="font-medium">{mcToDelete?.name}</span> 사회자를
-                삭제하시겠습���까?
+                삭제하시겠습니까?
               </p>
               <p className="text-sm text-gray-500 text-center mt-2">
                 이 작업은 되돌릴 수 없습니다.
@@ -1549,13 +1792,11 @@ export default function AdminIndex() {
                 </label>
                 <input
                   type="text"
-                  value={editingInquiry.author && typeof editingInquiry.author === 'string' ? editingInquiry.author.replace(/�/g, '') : ''}
+                  value={editingInquiry.author || ''}
                   onChange={(e) =>
                     setEditingInquiry({
                       ...editingInquiry,
-                      author: e.target.value
-                        .replace(/[\uFFFD]/g, "")
-                        .replace(/�/g, ""),
+                      author: e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1568,11 +1809,11 @@ export default function AdminIndex() {
                 </label>
                 <input
                   type="text"
-                  value={editingInquiry.spouse && typeof editingInquiry.spouse === 'string' ? editingInquiry.spouse.replace(/[ -\u001f\u007f-\u009f]/g, "") : ''}
+                  value={editingInquiry.spouse || ''}
                   onChange={(e) =>
                     setEditingInquiry({
                       ...editingInquiry,
-                      spouse: e.target.value.replace(/[\u0000-\u001f\u007f-\u009f]/g, ""),
+                      spouse: e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1601,7 +1842,7 @@ export default function AdminIndex() {
                   사회자:
                 </label>
                 <select
-                  value={editingInquiry.mc && typeof editingInquiry.mc === 'string' ? editingInquiry.mc.replace(/�/g, '') : ''}
+                  value={editingInquiry.mc || ''}
                   onChange={(e) =>
                     setEditingInquiry({
                       ...editingInquiry,
@@ -1610,10 +1851,10 @@ export default function AdminIndex() {
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 >
-                  <option value="">���회자 선택</option>
+                  <option value="">사회자 선택</option>
                   {mcList.map((mc) => (
-                    <option key={mc.id} value={mc.name.replace(/�/g, '')}>
-                      {mc.name.replace(/�/g, '')}
+                    <option key={mc.id} value={mc.name}>
+                      {mc.name}
                     </option>
                   ))}
                 </select>
@@ -1625,13 +1866,11 @@ export default function AdminIndex() {
                 </label>
                 <input
                   type="text"
-                  value={editingInquiry.weddingHall || ""}
+                  value={editingInquiry.weddingHall || ''}
                   onChange={(e) =>
                     setEditingInquiry({
                       ...editingInquiry,
-                      weddingHall: e.target.value
-                        .replace(/[\uFFFD]/g, "")
-                        .replace(/�/g, ""),
+                      weddingHall: e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1643,7 +1882,7 @@ export default function AdminIndex() {
                   예식종류:
                 </label>
                 <select
-                  value={editingInquiry.ceremonyType || ""}
+                  value={editingInquiry.ceremonyType || ''}
                   onChange={(e) =>
                     setEditingInquiry({
                       ...editingInquiry,
@@ -1700,7 +1939,7 @@ export default function AdminIndex() {
                   예식 시간:
                 </label>
                 <input
-                  type="time"
+                  type="text"
                   value={editingInquiry.ceremonyTime || ""}
                   onChange={(e) =>
                     setEditingInquiry({
@@ -1709,6 +1948,7 @@ export default function AdminIndex() {
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                  placeholder="예: 오후 12:30, 14:00 등"
                 />
               </div>
 
@@ -1717,7 +1957,7 @@ export default function AdminIndex() {
                   처음 늘봄을 접한 경로:
                 </label>
                 <select
-                  value={editingInquiry.howDidYouHear || ""}
+                  value={editingInquiry.howDidYouHear || ''}
                   onChange={(e) =>
                     setEditingInquiry({
                       ...editingInquiry,
@@ -1728,34 +1968,26 @@ export default function AdminIndex() {
                 >
                   <option value="">선택</option>
                   <option value="지인 소개">지인 소개</option>
-                  <option value="네이버 카페 - 멕마웨">
-                    네이버 카페 - 멕마웨
-                  </option>
-                  <option value="네이버 카페 - 광주결">
-                    네이버 카페 - 광주결
-                  </option>
-                  <option value="네이버 카페 - 다이렉트 카페">
-                    네이버 카페 - 다이렉트 카페
-                  </option>
-                  <option value="네이버 블로그">��이버 블로그</option>
-                  <option value="네이버 검���">네이버 검색</option>
+                  <option value="네이버 카페 - 멕마웨">네이버 카페 - 멕마웨</option>
+                  <option value="네이버 카페 - 광주결">네이버 카페 - 광주결</option>
+                  <option value="네이버 카페 - 다이렉트 카페">네이버 카페 - 다이렉트 카페</option>
+                  <option value="네이버 블로그">네이버 블로그</option>
+                  <option value="네이버 검색">네이버 검색</option>
                   <option value="구글 검색">구글 검색</option>
                   <option value="인스타그램">인스타그램</option>
                   <option value="유튜브">유튜브</option>
-                  <option value="웨딩홀 및 플래너 소개">
-                    웨딩홀 및 플래너 소개
-                  </option>
+                  <option value="웨딩홀 및 플래너 소개">웨딩홀 및 플래너 소개</option>
                   <option value="그 외 사이트">그 외 사이트</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  추가 정보 (링크/검��어/업체명):
+                  추가 정보 (링크/검색어/업체명):
                 </label>
                 <input
                   type="text"
-                  value={editingInquiry.linkUrl || ""}
+                  value={editingInquiry.linkUrl || ''}
                   onChange={(e) =>
                     setEditingInquiry({
                       ...editingInquiry,
@@ -1763,7 +1995,7 @@ export default function AdminIndex() {
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  placeholder="접한 경�� 관련 추가 정보"
+                  placeholder="접한 경로 관련 추가 정보"
                 />
               </div>
 
@@ -1792,19 +2024,62 @@ export default function AdminIndex() {
                 기타 문의 사항:
               </label>
               <textarea
-                value={editingInquiry.otherNotes || ""}
+                value={editingInquiry.otherNotes || ''}
                 onChange={(e) =>
                   setEditingInquiry({
                     ...editingInquiry,
-                    otherNotes: e.target.value
-                      .replace(/[\uFFFD]/g, "")
-                      .replace(/�/g, ""),
+                    otherNotes: e.target.value,
                   })
                 }
                 rows={6}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 placeholder="기타 문의사항을 입력하세요..."
               />
+            </div>
+
+            <div className="flex justify-center flex-wrap gap-2 mt-6 mb-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const d = editingInquiry;
+                  // 요일 한글로 변환
+                  let weekday = '';
+                  if (d.ceremonyDate) {
+                    const dateObj = new Date(d.ceremonyDate);
+                    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                    weekday = weekdays[dateObj.getDay()];
+                  }
+                  const text = `${d.ceremonyDate || ''}${weekday ? ` (${weekday})` : ''} ${d.weddingHall || ''} \n${d.secondPart || ''} \n//${d.mc || ''} \n${d.ceremonyType || ''} \n작성자 : ${d.author || ''} 님 \n${d.phone || ''} \n배우자 : ${d.spouse || ''} 님\n\n[문의 내용]\n${d.title ? d.title + '\n' : ''}${d.otherNotes || ''}`;
+                  safeCopyToClipboard(text);
+                }}
+              >예약 내용</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const d = editingInquiry;
+                  const dateStr = d.ceremonyDate ? `${d.ceremonyDate.split('-')[0].slice(2)}년도 ${d.ceremonyDate.split('-')[1]}월 ${d.ceremonyDate.split('-')[2]}일` : '';
+                  const text = `안녕하세요 ${d.author || ''}님 맞으시죠?\n프리미엄 결혼식 사회자 에이전시 늘봄입니다~^^ \n\n먼저 결혼을 진심으로 축하드립니다. 항상 행복과 즐거움이 가득하시길 바라겠습니다. \n\n${dateStr} ${d.ceremonyTime || ''} (${d.weddingHall || ''}) /${d.mc || ''}/ 사회자 예식 진행이 가능하십니다 \n\n그럼 비용 안내해드릴까요~?`;
+                  safeCopyToClipboard(text);
+                }}
+              >가능 문구</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const d = editingInquiry;
+                  const dateStr = d.ceremonyDate ? `${d.ceremonyDate.split('-')[0].slice(2)}년도 ${d.ceremonyDate.split('-')[1]}월 ${d.ceremonyDate.split('-')[2]}일` : '';
+                  const text = `아 네에 ${dateStr} ${d.ceremonyTime || ''} (${d.weddingHall || ''}) /${d.mc || ''}/ 사회자 섭외 확정 되셨구요~!   \n\n사전 미팅은 /${d.mc || ''}/ 사회자와 직접 일정 조율 후에 진행 가능하십니다~ ㅎㅎㅎ   \n\n식순과 대본 등은 /${d.mc || ''}/ 사회자를 통해 직접 받으실 수 있으며 늘봄에도 필요한 내용 있으시면 언제든 연락주시면 되겠습니다~!   \n\n그리고 할인 이벤트(후기, 짝꿍/깐부)에 참여하시려면 아래 두 가지를 해주시면 됩니다.\n1. 링크로 들어가 신청폼 작성(https://forms.gle/VY7pt8Nxp5UK1GBKA)\n2. 링크 작성 후, 각 사회자가 아닌 늘봄 번호(010-3938-2998)로 신청폼 작성했다고 연락\n(할인 이벤트는 예식 있는 전 주까지 등록을 완료해주셔야 할인 적용이 됩니다. 꼭 기한을 지켜 주시기 바랍니다.)\n\n그럼 다시 한 번 진심으로 결혼을 축하드리구요~ /${d.mc || ''}/ 사회자에게 연락드리라고 전해놓겠습니다ㅎㅎㅎ\n(번호 오류로 문자가 안 가는 경우가 있기 때문에 3일 내에 사회자에게서 연락이 오지 않는 경우에 이 번호로 다시 회신 부탁드립니다.) 감사합니다!!!\n    \n필요하신 것 있으시면 언제든 편히 연락주세요! \n감사합니다 :-)`;
+                  safeCopyToClipboard(text);
+                }}
+              >확정 문구</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const d = editingInquiry;
+                  const dateStr = d.ceremonyDate ? `${d.ceremonyDate.split('-')[0].slice(2)}년도 ${d.ceremonyDate.split('-')[1]}월 ${d.ceremonyDate.split('-')[2]}일` : '';
+                  const text = `안녕하세요 ${dateStr} ${d.ceremonyTime || ''} ${d.weddingHall || ''}로 문의 주신 ${d.author || ''}님 맞으시죠?\n프리미엄 결혼식 사회자 에이전시 늘봄입니다~^^ 문의 남겨주셔서 연락드렸습니다!\n\n먼저 결혼을 진심으로 축하드립니다. 항상 행복과 즐거움이 가득하시길 바라겠습니다.\n\n그런데 정말 아쉽네요ᅮᅮ 문의해주신 해당 날짜에는 /${d.mc || ''}/ 사회자 일정이 차있어 서 진행이 어려울 것 같습니다ᅮᅮ\n\n이렇게 연락을 주셨는데 너무 아쉽네요😭😭\n도움 드리지 못해서 정말 죄송합니다ᅮᅮ\n\n혹시 몰라서 다른 잘하는 사회자 필요하시면 편하게 연락주세요ᄒᄒᄒᄒ\n\n감사합니다~ ᄒᄒ`;
+                  safeCopyToClipboard(text);
+                }}
+              >거절 문구</Button>
             </div>
 
             <div className="flex justify-center space-x-3 mt-6">
@@ -1955,7 +2230,7 @@ export default function AdminIndex() {
                   type="submit"
                   className="bg-pink-500 hover:bg-pink-600 px-6"
                 >
-                  ���록
+                  추가
                 </Button>
                 <Button
                   type="button"
@@ -1999,7 +2274,7 @@ export default function AdminIndex() {
         <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">배너 수���</h2>
+              <h2 className="text-xl font-bold">배너 수정</h2>
               <button
                 onClick={() => {
                   setShowEditBannerModal(false);
@@ -2014,7 +2289,7 @@ export default function AdminIndex() {
             <form onSubmit={handleBannerEdit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  배너 ���목:
+                  배너 제목:
                 </label>
                 <input
                   type="text"
@@ -2066,7 +2341,7 @@ export default function AdminIndex() {
                         alt="현재 배너"
                         className="max-w-full h-32 object-cover mx-auto mb-2"
                       />
-                      <p className="text-sm text-gray-600 mb-2">현�� 이미지</p>
+                      <p className="text-sm text-gray-600 mb-2">현재 이미지</p>
                       <label className="cursor-pointer block">
                         <div className="flex flex-col items-center">
                           <Plus className="w-8 h-8 text-gray-400 mb-2" />
@@ -2177,7 +2452,7 @@ export default function AdminIndex() {
         <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">프���모션 추가</h2>
+              <h2 className="text-xl font-bold">프로모션 추가</h2>
               <button
                 onClick={() => setShowPromotionModal(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -2311,7 +2586,7 @@ export default function AdminIndex() {
                       content: value,
                     })
                   }
-                  placeholder="안내&TIP 내용을 입력하���요..."
+                  placeholder="안내&TIP 내용을 입력하세요..."
                   className="w-full"
                 />
               </div>
@@ -2345,46 +2620,209 @@ export default function AdminIndex() {
     );
   };
 
+  // 날짜와 시간 분리 및 시간 포맷 정리 함수
+  const splitDateAndTime = (raw: string) => {
+    if (!raw) return { date: '', time: '' };
+    // 날짜(YYYY-MM-DD) + 나머지(시간)
+    const match = raw.match(/(\d{4}-\d{2}-\d{2})\s*(.*)/);
+    if (!match) return { date: raw, time: '' };
+    const date = match[1];
+    let timeRaw = match[2].trim();
+    if (!timeRaw) return { date, time: '' };
+    // 오전/오후 추출
+    let ampm = '';
+    let timePart = timeRaw;
+    if (/오전|AM/i.test(timeRaw)) {
+      ampm = '오전';
+      timePart = timeRaw.replace(/오전|AM/ig, '').trim();
+    } else if (/오후|PM/i.test(timeRaw)) {
+      ampm = '오후';
+      timePart = timeRaw.replace(/오후|PM/ig, '').trim();
+    }
+    // 시/분 추출
+    let h = '', m = '';
+    // 16시 40분, 16:40, 16시, 16:40분, 16시40분, 16시40
+    let tMatch = timePart.match(/(\d{1,2})\s*시\s*(\d{1,2})?\s*분?/);
+    if (tMatch) {
+      h = tMatch[1].padStart(2, '0');
+      m = tMatch[2] ? tMatch[2].padStart(2, '0') : '00';
+    } else {
+      // 16:40, 2:05
+      tMatch = timePart.match(/(\d{1,2}):(\d{1,2})/);
+      if (tMatch) {
+        h = tMatch[1].padStart(2, '0');
+        m = tMatch[2].padStart(2, '0');
+      } else {
+        // 16시, 16
+        tMatch = timePart.match(/(\d{1,2})/);
+        if (tMatch) {
+          h = tMatch[1].padStart(2, '0');
+          m = '00';
+        }
+      }
+    }
+    let time = '';
+    if (h) {
+      time = `${ampm ? ampm + ' ' : ''}${h}:${m}`;
+    }
+    return { date, time };
+  };
+
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const data = evt.target?.result;
+      if (!data) return;
+      try {
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        // 첫 번째 행은 헤더, 두 번째 행부터 데이터
+        const header = rows[0] as string[];
+        const dataRows = rows.slice(1);
+        const newInquiries = dataRows.map((row: any[], idx: number) => {
+          // 엑셀 헤더 인덱스 찾기
+          const getIdx = (name: string) => header.findIndex(h => h === name);
+          const nameIdx = getIdx('이름');
+          const titleIdx = getIdx('문의제목');
+          const phoneIdx = getIdx('연락처');
+          const weddingHallIdx = getIdx('웨딩홀');
+          const placeIdx = getIdx('장소');
+          const ceremonyTypeIdx = getIdx('주례여부');
+          const secondPartIdx = getIdx('2부');
+          const dateIdx = getIdx('예식날짜');
+          const statusIdx = getIdx('상태');
+          const otherNotesIdx = getIdx('비고');
+          const createdAtIdx = getIdx('생성일');
+          // 날짜/시간 분리 및 정리
+          let ceremonyDate = '';
+          let ceremonyTime = '';
+          if (row[dateIdx]) {
+            const { date, time } = splitDateAndTime(row[dateIdx].toString());
+            ceremonyDate = date;
+            ceremonyTime = time;
+          }
+          // 2부 여부
+          let secondPart = '';
+          if (typeof row[secondPartIdx] === 'boolean') {
+            secondPart = row[secondPartIdx] ? '2부 있음' : '2부 없음';
+          } else if (typeof row[secondPartIdx] === 'string') {
+            if (row[secondPartIdx].toLowerCase() === 'true') secondPart = '2부 있음';
+            else if (row[secondPartIdx].toLowerCase() === 'false') secondPart = '2부 없음';
+            else secondPart = row[secondPartIdx];
+          }
+          // 상태 매핑
+          let status = '';
+          if (row[statusIdx] === '문의') status = '문의';
+          else if (row[statusIdx] === '예약완료') status = '확정';
+          else status = row[statusIdx] || '';
+          // 웨딩홀: '웨딩홀' 또는 '장소' 중 값이 있는 것
+          let weddingHall = '';
+          if (row[weddingHallIdx]) weddingHall = row[weddingHallIdx];
+          else if (row[placeIdx]) weddingHall = row[placeIdx];
+          // 예식종류: '주례 없는 예식' 또는 '주례 있는 예식'만 ceremonyType에 매핑
+          let ceremonyType = '';
+          if (row[ceremonyTypeIdx] === '주례 없는 예식' || row[ceremonyTypeIdx] === '주례 있는 예식') {
+            ceremonyType = row[ceremonyTypeIdx];
+          } else if (row[ceremonyTypeIdx]) {
+            ceremonyType = row[ceremonyTypeIdx];
+          }
+          // 비고 → 기타 문의 사항
+          let otherNotes = '';
+          if (otherNotesIdx !== -1) {
+            otherNotes = row[otherNotesIdx] || '';
+          }
+          // 생성일 → date
+          let date = '';
+          if (createdAtIdx !== -1 && row[createdAtIdx]) {
+            date = row[createdAtIdx];
+          } else {
+            date = new Date().toISOString().split('T')[0];
+          }
+          return {
+            id: Date.now().toString() + '_' + idx,
+            author: row[nameIdx] || '',
+            title: row[titleIdx] || '',
+            phone: row[phoneIdx] || '',
+            weddingHall,
+            ceremonyType,
+            secondPart,
+            ceremonyDate,
+            ceremonyTime,
+            status,
+            otherNotes,
+            date,
+          };
+        });
+        // 각 문의를 API로 저장
+        let savedCount = 0;
+        for (const inquiry of newInquiries) {
+          const success = await saveInquiry(inquiry);
+          if (success) {
+            savedCount++;
+          }
+        }
+        
+        // 성공적으로 저장된 문의들만 상태에 추가
+        setInquiries((prev: any[]) => {
+          const merged = [...newInquiries, ...prev];
+          return merged;
+        });
+        
+        if (savedCount === newInquiries.length) {
+          alert('엑셀 데이터가 성공적으로 업로드되었습니다!');
+        } else {
+          alert(`엑셀 데이터 업로드 중 일부 실패했습니다. (${savedCount}/${newInquiries.length} 성공)`);
+        }
+        alert('엑셀 데이터가 성공적으로 업로드되었습니다!');
+      } catch (err) {
+        alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  // 안전한 클립보드 복사 함수
+  const safeCopyToClipboard = (text: string) => {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        alert('복사 기능을 지원하지 않는 브라우저입니다.');
+      }
+      document.body.removeChild(textarea);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="pt-16">
-        {" "}
-        {/* 헤더 높이만큼 여백 추가 */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <h1 className="text-2xl font-bold text-gray-900">늘봄 관리자</h1>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                className="text-gray-600 hover:text-gray-900"
-              >
-                로그아웃
-              </Button>
-            </div>
-          </div>
-        </header>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="pt-4">
+        <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
-            <div className="mb-8">
-              <nav className="flex space-x-8">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setCurrentTab(tab.id)}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      currentTab === tab.id
-                        ? "border-pink-400 text-pink-500"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    {tab.name}
-                  </button>
-                ))}
-              </nav>
+            {/* 탭 네비게이션: 모든 관리 페이지에서 항상 보이게 */}
+            <div className="flex justify-center items-center mt-8 mb-4" style={{ background: 'transparent', boxShadow: 'none', borderRadius: 0 }}>
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`px-6 py-2 mx-2 text-base font-semibold border-b-2 transition-colors duration-150
+                    ${currentTab === tab.id ? 'text-pink-500 border-pink-500 bg-transparent' : 'text-gray-700 border-transparent bg-transparent hover:text-pink-400'}`}
+                  onClick={() => setCurrentTab(tab.id)}
+                  style={{ minWidth: 0, background: 'transparent', borderRadius: 0 }}
+                >
+                  {tab.name}
+                </button>
+              ))}
             </div>
-
             {renderTabContent()}
           </div>
         </div>
@@ -2396,6 +2834,15 @@ export default function AdminIndex() {
         {renderEditBannerModal()}
         {renderPromotionModal()}
         {renderTipsModal()}
+      </div>
+      <div className="w-full flex justify-center mt-8 mb-4">
+        <Button
+          onClick={handleLogout}
+          variant="outline"
+          className="text-gray-600 hover:text-gray-900"
+        >
+          로그아웃
+        </Button>
       </div>
     </div>
   );

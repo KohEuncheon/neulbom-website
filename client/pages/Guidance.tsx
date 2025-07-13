@@ -2,16 +2,34 @@ import { Header } from "@/components/website/Header";
 import { Footer } from "@/components/website/Footer";
 import { useState, useEffect } from "react";
 
+// API 호출 함수
+const fetchTips = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/getTipsList');
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else {
+      console.error('팁 데이터 불러오기 실패');
+      return [];
+    }
+  } catch (error) {
+    console.error('팁 데이터 불러오기 오류:', error);
+    return [];
+  }
+};
+
 export default function Guidance() {
   const [tips, setTips] = useState<any[]>([]);
   const [selectedTip, setSelectedTip] = useState<any>(null);
 
   useEffect(() => {
-    // localStorage에서 등록된 안내&팁 불러오기
-    const savedTips = localStorage.getItem("tipsList");
-    if (savedTips) {
-      setTips(JSON.parse(savedTips));
-    }
+    const loadTips = async () => {
+      const tipsData = await fetchTips();
+      setTips(tipsData);
+    };
+
+    loadTips();
   }, []);
 
   return (
