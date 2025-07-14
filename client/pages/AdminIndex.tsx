@@ -2702,12 +2702,20 @@ export default function AdminIndex() {
   };
 
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[엑셀 업로드] 함수 진입');
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      alert('엑셀 파일이 선택되지 않았습니다.');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = async (evt) => {
+      console.log('[엑셀 업로드] FileReader onload');
       const data = evt.target?.result;
-      if (!data) return;
+      if (!data) {
+        alert('엑셀 파일을 읽을 수 없습니다.');
+        return;
+      }
       try {
         const workbook = XLSX.read(data, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
