@@ -1,62 +1,75 @@
-const XLSX = require('xlsx');
+const fs = require('fs');
+const csv = require('csv-parser');
 const { MongoClient } = require('mongodb');
+require('dotenv').config();
 
-// === 1. 파일 경로와 Atlas 정보만 수정하면 됨 ===
-const FILE_PATH = '업로드할파일.xlsx'; // 또는 .csv
-const SHEET_NAME = null; // null이면 첫 번째 시트 사용
-const MONGO_URI = 'mongodb+srv://<username>:<password>@클러스터주소.mongodb.net/test?retryWrites=true&w=majority';
-const DB_NAME = 'test';
-const COLLECTION_NAME = 'reservations';
+// 한글 헤더 ↔ 영문 필드명 매핑표
+const headerMap = {
+  '문의번호': 'id',
+  '이름': 'author',
+  '문의제목': 'title',
+  '예식날짜': 'ceremonyDate',
+  '장소': 'place',
+  '연락처': 'phone',
+  '주례여부': 'ceremonyType',
+  '2부': 'secondPart',
+  '비고': 'note',
+  '접한경로': 'howDidYouHear',
+  '네이버기타': 'naverEtc',
+  '플래너및홀': 'plannerAndHall',
+  '기타그외': 'otherEtc',
+  '상태': 'status',
+  '생성일': 'createdAt',
+  '사회자': 'mc',
+  '할인구분': 'discountType',
+};
 
-// === 2. 엑셀/CSV 파일 읽기 ===
-const workbook = XLSX.readFile(FILE_PATH);
-const sheetName = SHEET_NAME || workbook.SheetNames[0];
-const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
-
-// === 3. 컬럼 매핑(알려준 규칙 반영) ===
-const mapRow = (row) => ({
-  author: row['이름'] || row['author'] || '',
-  title: row['문의제목'] || row['title'] || '',
-  phone: row['연락처'] || row['phone'] || '',
-  weddingHall: row['웨딩홀'] || row['weddingHall'] || row['장소'] || '',
-  ceremonyType: row['주례여부'] || row['ceremonyType'] || '',
-  secondPart: row['2부'] || row['secondPart'] || '',
-  ceremonyDate: row['예식날짜'] || row['ceremonyDate'] || '',
-  ceremonyTime: row['예식시간'] || row['ceremonyTime'] || '',
-  status: row['상태'] || row['status'] || '',
-  otherNotes: row['비고'] || row['otherNotes'] || '',
-  date: row['생성일'] || row['date'] || new Date().toISOString().split('T')[0],
-  mc: row['사회자'] || row['mc'] || '',
-});
-
-// === 4. 유효성 검사 및 데이터 변환 ===
-const data = rawData
-  .map(mapRow)
-  .filter(row => row.title && row.author && row.mc); // 필수값 없는 행 제외
-
-console.log(`업로드할 데이터: ${data.length}개`);
-
-// === 5. Atlas로 업로드 ===
-const client = new MongoClient(MONGO_URI);
-
-async function run() {
-  try {
-    await client.connect();
-    const db = client.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
-
-    if (data.length === 0) {
-      console.log('업로드할 데이터가 없습니다.');
-      return;
-    }
-
-    const result = await collection.insertMany(data);
-    console.log('업로드 완료:', result.insertedCount, '개');
-  } catch (err) {
-    console.error('업로드 중 에러:', err);
-  } finally {
-    await client.close();
-  }
+if (process.argv.length < 3) {
+  console.log('사용법: node uploadToAtlas.js <input.csv>');
+  process.exit(1);
 }
 
-run().catch(console.dir); 
+const inputFile = process.argv[2];
+const results = [];
+
+fs.createReadStream(inputFile)
+  .pipe(csv())
+  .on('data', (data) => {
+    // 한글 헤더 → 영문 필드명으로 변환
+    const newRow = {};
+    for (const key in data) {
+      const mappedKey = headerMap[key] || key;
+      newRow[mappedKey] = data[key];
+    }
+    // 예식날짜 분리: '2025-09-20 오후 12시 10분' → ceremonyDate, ceremonyTime
+    if (newRow.ceremonyDate && typeof newRow.ceremonyDate === 'string') {
+      const match = newRow.ceremonyDate.match(/^(\d{4}-\d{2}-\d{2})\s*(.*)$/);
+      if (match) {
+        newRow.ceremonyDate = match[1];
+        if (match[2]) {
+          newRow.ceremonyTime = match[2].trim();
+        }
+      }
+    }
+    results.push(newRow);
+  })
+  .on('end', async () => {
+    // MongoDB Atlas에 업로드
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      console.error('MONGODB_URI 환경변수를 .env 파일에 설정하세요.');
+      process.exit(1);
+    }
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+      await client.connect();
+      const db = client.db('test');
+      const collection = db.collection('reservations');
+      const result = await collection.insertMany(results);
+      console.log(`업로드 완료! ${result.insertedCount}개 문서가 추가되었습니다.`);
+    } catch (err) {
+      console.error('업로드 중 오류:', err);
+    } finally {
+      await client.close();
+    }
+  }); 

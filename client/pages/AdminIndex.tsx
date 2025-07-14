@@ -308,6 +308,8 @@ export default function AdminIndex() {
         // date/createdAt 동기화
         let date = item.date || item.createdAt || '';
         let createdAt = item.createdAt || item.date || '';
+        // weddingHall 보완: 없으면 place 값 사용
+        let weddingHall = item.weddingHall || item.place || '';
         return {
           ...item,
           author: item.author || '',
@@ -318,6 +320,7 @@ export default function AdminIndex() {
           status,
           date,
           createdAt,
+          weddingHall,
         };
       });
       setInquiries(mapped);
@@ -833,14 +836,14 @@ export default function AdminIndex() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedInquiries.length > 0 ? (
-                    pagedInquiries.map((inquiry, index) => (
+                  {inquiries.length > 0 ? (
+                    inquiries.map((inquiry, index) => (
                       <tr
                         key={inquiry.id}
                         className="border-b hover:bg-gray-50 cursor-pointer h-10"
                         onClick={() => handleInquiryClick(inquiry)}
                       >
-                        <td className="w-16 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap">{sortedInquiries.length - (startIdx + index)}</td>
+                        <td className="w-16 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap">{totalCount - ((currentPage - 1) * itemsPerPage + index)}</td>
                         <td className="text-left px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap overflow-hidden text-ellipsis">
                           {inquiry.title}
                           {inquiry.status === "확정" && (
@@ -2137,6 +2140,13 @@ export default function AdminIndex() {
               >
                 취소하기
               </Button>
+              <Button
+                variant="destructive"
+                onClick={handleInquiryDelete}
+                className="px-6 bg-red-500 hover:bg-red-600 text-white"
+              >
+                삭제하기
+              </Button>
             </div>
           </div>
         </div>
@@ -2867,6 +2877,33 @@ export default function AdminIndex() {
 
   // 페이지네이션 계산
   const totalPages = Math.ceil(totalCount / itemsPerPage);
+
+  // 문의 삭제 처리
+  const handleInquiryDelete = async () => {
+    if (!editingInquiry) return;
+    if (!window.confirm("정말 이 문의를 삭제하시겠습니까?")) return;
+
+    try {
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const apiUrl = isDevelopment
+        ? `http://localhost:3001/api/reservations/${editingInquiry.id}`
+        : `/.netlify/functions/deleteReservation?id=${editingInquiry.id}`;
+      const response = await fetch(apiUrl, { method: 'DELETE' });
+      if (response.ok) {
+        // 삭제 후 목록 새로고침
+        const { data, totalCount } = await fetchInquiries(currentPage, itemsPerPage);
+        setInquiries(data);
+        setTotalCount(totalCount);
+        alert("문의가 삭제되었습니다.");
+        setShowInquiryEdit(false);
+        setEditingInquiry(null);
+      } else {
+        alert("삭제에 실패했습니다. 다시 시도해주세요.");
+      }
+    } catch (error) {
+      alert("삭제 중 오류가 발생했습니다.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
