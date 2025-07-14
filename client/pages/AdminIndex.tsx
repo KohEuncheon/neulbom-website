@@ -834,7 +834,7 @@ export default function AdminIndex() {
                   </tr>
                 </thead>
                 <tbody>
-                  {inquiries.length > 0 ? (
+                  {Array.isArray(inquiries) && inquiries.length > 0 ? (
                     inquiries.map((inquiry, index) => (
                       <tr
                         key={inquiry.id || index}
