@@ -32,24 +32,6 @@ export function VideoSection() {
               </div>
             </button>
 
-            {/* Video title overlay */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 md:p-6">
-              <h3 className="text-white text-sm md:text-lg font-medium mb-2">
-                수백 회 베테랑 사회자도 처음 보는 이색 결혼식?! 😮😳 (마지막까지
-                꼭 보세요~ :-0)
-              </h3>
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 md:w-8 md:h-8 bg-gray-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">고</span>
-                  </div>
-                  <span className="text-white text-xs md:text-sm">
-                    고은천 사회자
-                  </span>
-                </div>
-              </div>
-            </div>
-
             {/* Fullscreen video overlay when playing */}
             {showVideo && (
               <div

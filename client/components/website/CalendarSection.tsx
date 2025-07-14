@@ -179,17 +179,23 @@ export function CalendarSection() {
           </div>
         </div>
 
-        {/* MC Legend - Center aligned */}
-        <div className="flex flex-wrap justify-center gap-3 mb-8 text-xs">
-          {mcList.map((mc) => (
-            <div key={mc.id} className="flex items-center space-x-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: mc.profileColor }}
-              ></div>
-              <span className="text-gray-700">- /{mc.name}/ 사회자</span>
-            </div>
-          ))}
+        {/* MC List - 가로 3명씩 컬러와 함께 표시 */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="flex flex-wrap gap-x-8 gap-y-3 justify-center">
+            {mcList.map((mc) => (
+              <div key={mc._id || mc.id} className="flex items-center min-w-[180px]">
+                <span
+                  className="mr-2 text-lg"
+                  style={{ color: mc.profileColor || "#e74c3c" }}
+                >
+                  ●
+                </span>
+                <span className="text-base font-medium text-gray-800">
+                  {mc.name} / 사회자
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Calendar Controls */}
