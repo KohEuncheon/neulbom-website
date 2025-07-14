@@ -1,46 +1,72 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-// API 호출 함수 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-const fetchBanners = async () => {
+// 개선된 fetchBanners: page, limit, sort 파라미터 지원
+type FetchBannersParams = {
+  page?: number;
+  limit?: number;
+  sort?: string;
+  sortOrder?: string;
+};
+const fetchBanners = async ({ page = 1, limit = 10, sort = 'date', sortOrder = 'desc' }: FetchBannersParams = {}) => {
   try {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/banners' : '/.netlify/functions/getBannerList';
-    
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    params.append('limit', String(limit));
+    params.append('sort', sort);
+    params.append('sortOrder', sortOrder === 'asc' ? 'asc' : 'desc');
+    const apiUrl = isDevelopment
+      ? `http://localhost:3001/api/banners?${params.toString()}`
+      : `/.netlify/functions/getBannerList?${params.toString()}`;
     const response = await fetch(apiUrl);
     if (response.ok) {
-      const data = await response.json();
-      return data;
+      const result = await response.json();
+      // { data, totalCount }
+      return result;
     } else {
       console.error('배너 데이터 불러오기 실패');
-      return [];
+      return { data: [], totalCount: 0 };
     }
   } catch (error) {
     console.error('배너 데이터 불러오기 오류:', error);
-    return [];
+    return { data: [], totalCount: 0 };
   }
 };
 
 export function BannerSlide() {
   const [banners, setBanners] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     // 배너 목록 불러오기
+    let isMounted = true;
     const loadBanners = async () => {
-      const bannerData = await fetchBanners();
-      setBanners(bannerData);
+      const { data, totalCount } = await fetchBanners({
+        page: currentPage,
+        limit: itemsPerPage,
+        sort: 'date',
+        sortOrder: 'desc',
+      });
+      if (isMounted) {
+        setBanners(Array.isArray(data) ? data : []);
+        setTotalCount(totalCount);
+        setCurrentIndex(0); // 페이지 바뀌면 첫 배너로
+      }
     };
-
     loadBanners();
-
     // 주기적으로 배너 목록 새로고침 (5분마다)
     const interval = setInterval(loadBanners, 5 * 60 * 1000);
-
     return () => {
+      isMounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   // 10초마다 슬라이드 변경
   useEffect(() => {
@@ -135,6 +161,20 @@ export function BannerSlide() {
               </div>
             )}
           </div>
+          {/* 페이지네이션 */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-4 gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  className={`px-3 py-1 rounded ${currentPage === page ? 'bg-pink-400 text-white' : 'bg-white text-pink-400 border border-pink-400'}`}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

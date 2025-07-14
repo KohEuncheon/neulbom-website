@@ -17,7 +17,6 @@ import {
 import React, { useState, useEffect } from "react";
 import { Header } from "@/components/website/Header";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
-import { generateSampleInquiries } from "@/utils/generateSampleData";
 import * as XLSX from 'xlsx';
 
 // API 호출 함수들 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용

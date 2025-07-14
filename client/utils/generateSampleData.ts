@@ -1,4 +1,6 @@
 // 구글 스프레드시트 기반 예약 문의 데이터 생성 함수
+// 운영 환경에서 사용하지 않으므로 전체 주석 처리
+/*
 export function generateSampleInquiries() {
   // 더 많은 다양한 샘플 데이터 생성 (실제 운영시에는 실제 데이터 사용)
   const sampleData = [
@@ -28,7 +30,7 @@ export function generateSampleInquiries() {
       author: "김민수",
       spouse: "이지은",
       phone: "010-1234-5678",
-      mc: "고은���",
+      mc: "고은천",
       weddingHall: "그랜드컨벤션센터",
       ceremonyType: "주례 있는 예식",
       secondPart: "2부 있음",
@@ -145,7 +147,7 @@ export function generateSampleInquiries() {
       phone: "010-7890-1234",
       mc: "최창은",
       weddingHall: "가든파티웨딩홀",
-      ceremonyType: "���례 있는 예식",
+      ceremonyType: "주례 있는 예식",
       secondPart: "2부 있음",
       ceremonyDate: "2026-03-15",
       ceremonyTime: "14:30",
@@ -183,7 +185,7 @@ export function generateSampleInquiries() {
       phone: "010-9012-3456",
       mc: "최창은",
       weddingHall: "크리스탈볼룸",
-      ceremonyType: "주례 ��는 예식",
+      ceremonyType: "주례 없는 예식",
       secondPart: "2부 있음",
       ceremonyDate: "2026-05-10",
       ceremonyTime: "11:00",
@@ -296,3 +298,4 @@ export function generateSampleInquiries() {
 
   return sampleData;
 }
+*/

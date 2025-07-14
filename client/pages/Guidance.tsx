@@ -2,38 +2,65 @@ import { Header } from "@/components/website/Header";
 import { Footer } from "@/components/website/Footer";
 import { useState, useEffect } from "react";
 
-// API 호출 함수 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-const fetchTips = async () => {
+// 개선된 fetchTips: page, limit, sort 파라미터 지원
+type FetchTipsParams = {
+  page?: number;
+  limit?: number;
+  sort?: string;
+  sortOrder?: string;
+};
+const fetchTips = async ({ page = 1, limit = 20, sort = 'date', sortOrder = 'desc' }: FetchTipsParams = {}) => {
   try {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/tips' : '/.netlify/functions/getTipsList';
-    
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    params.append('limit', String(limit));
+    params.append('sort', sort);
+    params.append('sortOrder', sortOrder === 'asc' ? 'asc' : 'desc');
+    const apiUrl = isDevelopment
+      ? `http://localhost:3001/api/tips?${params.toString()}`
+      : `/.netlify/functions/getTipsList?${params.toString()}`;
     const response = await fetch(apiUrl);
     if (response.ok) {
-      const data = await response.json();
-      return data;
+      const result = await response.json();
+      // { data, totalCount }
+      return result;
     } else {
       console.error('팁 데이터 불러오기 실패');
-      return [];
+      return { data: [], totalCount: 0 };
     }
   } catch (error) {
     console.error('팁 데이터 불러오기 오류:', error);
-    return [];
+    return { data: [], totalCount: 0 };
   }
 };
 
 export default function Guidance() {
   const [tips, setTips] = useState<any[]>([]);
   const [selectedTip, setSelectedTip] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
+    let isMounted = true;
     const loadTips = async () => {
-      const tipsData = await fetchTips();
-      setTips(tipsData);
+      const { data, totalCount } = await fetchTips({
+        page: currentPage,
+        limit: itemsPerPage,
+        sort: 'date',
+        sortOrder: 'desc',
+      });
+      if (isMounted) {
+        setTips(Array.isArray(data) ? data : []);
+        setTotalCount(totalCount);
+      }
     };
-
     loadTips();
-  }, []);
+    return () => { isMounted = false; };
+  }, [currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -101,28 +128,39 @@ export default function Guidance() {
                     </tr>
                   </thead>
                   <tbody>
-                    {tips
-                      .slice()
-                      .reverse()
-                      .map((tip, index) => (
-                        <tr
-                          key={tip.id}
-                          className="border-b hover:bg-gray-50 cursor-pointer"
-                          onClick={() => setSelectedTip(tip)}
-                        >
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {index + 1}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900 hover:text-pink-600">
-                            {tip.title}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 text-center">
-                            {tip.date}
-                          </td>
-                        </tr>
-                      ))}
+                    {tips.map((tip, index) => (
+                      <tr
+                        key={tip.id}
+                        className="border-b hover:bg-gray-50 cursor-pointer"
+                        onClick={() => setSelectedTip(tip)}
+                      >
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 hover:text-pink-600">
+                          {tip.title}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 text-center">
+                          {tip.date}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
+                {/* 페이지네이션 */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-8 gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        className={`px-3 py-1 rounded ${currentPage === page ? 'bg-pink-400 text-white' : 'bg-white text-pink-400 border border-pink-400'}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                )}
               ) : (
                 <div className="text-center py-12">
                   <p className="text-gray-500 text-lg">
