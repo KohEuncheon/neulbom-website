@@ -632,7 +632,7 @@ export default function AdminIndex() {
     // 실제 DB에서 삭제
     try {
       const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const apiUrl = isDevelopment ? `http://localhost:3001/api/mcs/${mcToDelete?.id}` : `/.netlify/functions/deleteMC?id=${mcToDelete?.id}`;
+      const apiUrl = isDevelopment ? `http://localhost:3001/api/mcs/${mcToDelete?._id}` : `/.netlify/functions/deleteMC?id=${mcToDelete?._id}`;
       const response = await fetch(apiUrl, {
         method: 'DELETE',
       });
