@@ -25,14 +25,19 @@ export function CalendarSection() {
   const [showDateModal, setShowDateModal] = useState(false);
 
   useEffect(() => {
-    // 등록된 사회자 목록 불러오기
-    const savedMCs = localStorage.getItem("registeredMCs");
-    if (savedMCs) {
-      const registeredMCs = JSON.parse(savedMCs);
-      setMcList(registeredMCs);
-    }
+    // 등록된 사회자 목록 불러오기 (서버에서 직접 fetch)
+    const fetchMCs = async () => {
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
+      const response = await fetch(apiUrl);
+      if (response.ok) {
+        const data = await response.json();
+        setMcList(data);
+      }
+    };
+    fetchMCs();
 
-    // 확정된 예약만 불러오기
+    // 확정된 예약만 불러오기 (기존 코드 유지)
     const savedInquiries = localStorage.getItem("customerInquiries");
     if (savedInquiries) {
       const inquiries = JSON.parse(savedInquiries);
