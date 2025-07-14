@@ -344,7 +344,7 @@ export default function Reservation() {
                     <option value="">사회자 선택</option>
                     {mcList.map((mc) => (
                       <option key={mc} value={mc.replace(/�/g, '')}>
-                        {mc.replace(/�/g, '')}
+                        {mc.replace(/�/g, '')} 사회자
                       </option>
                     ))}
                     <option value="상관없음">상관없음</option>

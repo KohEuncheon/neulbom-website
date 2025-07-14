@@ -71,7 +71,7 @@ export function BannerSlide() {
 
   // 배너가 없으면 기본 배너 표시
   if (banners.length === 0) {
-    return null;
+    return null; // 샘플 배너 미노출
   }
 
   const currentBanner = banners[currentIndex];

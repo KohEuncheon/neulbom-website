@@ -186,16 +186,16 @@ export function CalendarSection() {
 
         {/* MC List - 가로 3명씩 컬러와 함께 표시 */}
         <div className="max-w-2xl mx-auto mb-8">
-          <div className="flex flex-wrap gap-x-8 gap-y-3 justify-center">
+          <div className="flex flex-wrap gap-x-8 gap-y-3 justify-center text-sm">
             {mcList.map((mc) => (
               <div key={mc._id || mc.id} className="flex items-center min-w-[180px]">
                 <span
-                  className="mr-2 text-lg"
+                  className="mr-2 text-base"
                   style={{ color: mc.profileColor || "#e74c3c" }}
                 >
                   ●
                 </span>
-                <span className="text-base font-medium text-gray-800">
+                <span className="font-medium text-gray-800">
                   {mc.name} / 사회자
                 </span>
               </div>
@@ -302,56 +302,44 @@ export function CalendarSection() {
                         </div>
 
                         <div className="space-y-1">
+                          {/* MC별로 ●와 이름, 예약자(마스킹) 표시 */}
                           {(() => {
                             // 사회자별로 그룹핑
                             const groupedByMc = dayReservations.reduce(
-                              (acc, reservation) => {
+                              (acc: Record<string, any[]>, reservation) => {
                                 if (!acc[reservation.mc]) {
                                   acc[reservation.mc] = [];
                                 }
                                 acc[reservation.mc].push(reservation);
                                 return acc;
                               },
-                              {} as { [key: string]: any[] },
+                              {} as Record<string, any[]>,
                             );
-
-                            return Object.entries(groupedByMc).map(
+                            return (Object.entries(groupedByMc) as [string, any[]][]).map(
                               ([mcName, mcReservations]) => (
-                                <div key={mcName} className="w-full mb-1">
-                                  {(() => {
-                                    const rows = [];
-                                    for (
-                                      let i = 0;
-                                      i < mcReservations.length;
-                                      i += 3
-                                    ) {
-                                      const rowItems = mcReservations.slice(
-                                        i,
-                                        i + 3,
-                                      );
-                                      rows.push(
-                                        <div
-                                          key={i}
-                                          className="flex gap-0.5 mb-0.5"
-                                        >
-                                          {rowItems.map((reservation, idx) => (
-                                            <div
-                                              key={i + idx}
-                                              className="text-xs text-white px-1 py-0.5 rounded flex-shrink-0"
-                                              style={{
-                                                backgroundColor: getMcColor(
-                                                  reservation.mc,
-                                                ),
-                                              }}
-                                            >
-                                              {maskName(reservation.author)}
-                                            </div>
-                                          ))}
-                                        </div>,
-                                      );
-                                    }
-                                    return rows;
-                                  })()}
+                                <div key={mcName} className="flex items-center gap-1 mb-1">
+                                  <span
+                                    className="text-base"
+                                    style={{ color: getMcColor(mcName) }}
+                                  >
+                                    ●
+                                  </span>
+                                  <span className="text-xs font-semibold text-gray-800 mr-1">
+                                    {mcName}
+                                  </span>
+                                  <div className="flex gap-0.5">
+                                    {mcReservations.map((reservation, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="text-xs text-white px-1 py-0.5 rounded flex-shrink-0"
+                                        style={{
+                                          backgroundColor: getMcColor(reservation.mc),
+                                        }}
+                                      >
+                                        {maskName(reservation.author)}
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               ),
                             );

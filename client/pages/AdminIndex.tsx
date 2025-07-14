@@ -1875,7 +1875,7 @@ export default function AdminIndex() {
                   사회자:
                 </label>
                 <select
-                  value={editingInquiry.mc || ''}
+                  value={(editingInquiry.mc || '').replace(/\//g, '')}
                   onChange={(e) =>
                     setEditingInquiry({
                       ...editingInquiry,
@@ -1886,8 +1886,8 @@ export default function AdminIndex() {
                 >
                   <option value="">사회자 선택</option>
                   {mcList.map((mc) => (
-                    <option key={mc.id} value={mc.name}>
-                      {mc.name}
+                    <option key={mc.id} value={mc.name.replace(/\//g, '')}>
+                      {mc.name} 사회자
                     </option>
                   ))}
                 </select>
@@ -2775,6 +2775,19 @@ export default function AdminIndex() {
           } else {
             date = new Date().toISOString().split('T')[0];
           }
+          // 사회자 이름에서 슬래시(/) 제거
+          let mcName = '';
+          const mcIdx = getIdx('사회자');
+          if (mcIdx !== -1 && row[mcIdx]) {
+            mcName = row[mcIdx].toString().replace(/\//g, '').trim();
+            // mcList와 자동 매칭 (이름에서 / 제거 후 비교)
+            const matched = mcList.find(
+              (mc) => mc.name.replace(/\//g, '').trim() === mcName
+            );
+            if (matched) {
+              mcName = matched.name;
+            }
+          }
           return {
             id: Date.now().toString() + '_' + idx,
             author: row[nameIdx] || '',
@@ -2788,6 +2801,7 @@ export default function AdminIndex() {
             status,
             otherNotes,
             date,
+            mc: mcName,
           };
         });
         // 각 문의를 API로 저장
