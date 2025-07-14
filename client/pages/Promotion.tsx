@@ -114,54 +114,56 @@ export default function Promotion() {
             /* 프로모션 목록 테이블 */
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
               {promotions.length > 0 ? (
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">
-                        번호
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">
-                        제목
-                      </th>
-                      <th className="px-6 py-4 text-center text-sm font-medium text-gray-700">
-                        등록일
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {promotions.map((promotion, index) => (
-                      <tr
-                        key={promotion.id}
-                        className="border-b hover:bg-gray-50 cursor-pointer"
-                        onClick={() => setSelectedPromotion(promotion)}
-                      >
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {(currentPage - 1) * itemsPerPage + index + 1}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 hover:text-pink-600">
-                          {promotion.title}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 text-center">
-                          {promotion.date}
-                        </td>
+                <div>
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">
+                          번호
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">
+                          제목
+                        </th>
+                        <th className="px-6 py-4 text-center text-sm font-medium text-gray-700">
+                          등록일
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {/* 페이지네이션 */}
-                {totalPages > 1 && (
-                  <div className="flex justify-center mt-8 gap-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        className={`px-3 py-1 rounded ${currentPage === page ? 'bg-pink-400 text-white' : 'bg-white text-pink-400 border border-pink-400'}`}
-                        onClick={() => setCurrentPage(page)}
-                      >
-                        {page}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                    </thead>
+                    <tbody>
+                      {promotions.map((promotion, index) => (
+                        <tr
+                          key={promotion.id}
+                          className="border-b hover:bg-gray-50 cursor-pointer"
+                          onClick={() => setSelectedPromotion(promotion)}
+                        >
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {(currentPage - 1) * itemsPerPage + index + 1}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900 hover:text-pink-600">
+                            {promotion.title}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500 text-center">
+                            {promotion.date}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {/* 페이지네이션 */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-center mt-8 gap-2">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          className={`px-3 py-1 rounded ${currentPage === page ? 'bg-pink-400 text-white' : 'bg-white text-pink-400 border border-pink-400'}`}
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="text-center py-12">
                   <p className="text-gray-500 text-lg">
