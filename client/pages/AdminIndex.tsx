@@ -280,8 +280,7 @@ export default function AdminIndex() {
 
       // 문의 데이터 불러오기 (서버 페이징)
       const { data, totalCount } = await fetchInquiries(currentPage, itemsPerPage);
-      // 매핑 규칙 적용 (엑셀 업로드와 동일하게)
-      const mapped = data.map((item: any, idx: number) => {
+      const mapped = Array.isArray(data) ? data.map((item: any, idx: number) => {
         // 2부 여부
         let secondPart = item.secondPart;
         if (typeof secondPart === 'boolean') {
@@ -322,21 +321,21 @@ export default function AdminIndex() {
           createdAt,
           weddingHall,
         };
-      });
+      }) : [];
       setInquiries(mapped);
       setTotalCount(totalCount);
 
       // 배너 데이터 불러오기
       const bannerData = await fetchBanners();
-      setBannerList(bannerData);
+      setBannerList(Array.isArray(bannerData) ? bannerData : []);
 
       // 프로모션 데이터 불러오기
       const promotionData = await fetchPromotions();
-      setPromotionList(promotionData);
+      setPromotionList(Array.isArray(promotionData) ? promotionData : []);
 
       // 팁 데이터 불러오기
       const tipsData = await fetchTips();
-      setTipsList(tipsData);
+      setTipsList(Array.isArray(tipsData) ? tipsData : []);
     };
 
     loadData();
@@ -1165,7 +1164,7 @@ export default function AdminIndex() {
                   </tr>
                 </thead>
                 <tbody>
-                  {promotionList
+                  {(Array.isArray(promotionList) ? promotionList : [])
                     .slice()
                     .reverse()
                     .map((promotion, index) => (
@@ -1174,7 +1173,7 @@ export default function AdminIndex() {
                         className="border-b hover:bg-gray-50"
                       >
                         <td className="px-4 py-3 text-center text-sm">
-                          {promotionList.length - index}
+                          {(Array.isArray(promotionList) ? promotionList.length : 0) - index}
                         </td>
                         <td className="px-4 py-3 text-left text-sm">
                           {promotion.title}
@@ -1274,13 +1273,13 @@ export default function AdminIndex() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tipsList
+                  {(Array.isArray(tipsList) ? tipsList : [])
                     .slice()
                     .reverse()
                     .map((tip, index) => (
-                      <tr key={tip.id} className="border-b hover:bg-gray-50">
+                      <tr key={tip.id || index} className="border-b hover:bg-gray-50">
                         <td className="px-4 py-3 text-center text-sm">
-                          {tipsList.length - index}
+                          {(Array.isArray(tipsList) ? tipsList.length : 0) - index}
                         </td>
                         <td className="px-4 py-3 text-left text-sm">
                           {tip.title}

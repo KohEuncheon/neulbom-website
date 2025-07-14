@@ -102,7 +102,7 @@ export default function Reservation() {
 
       // 문의 목록 불러오기
       const inquiryData = await fetchInquiries();
-      setInquiryList(inquiryData);
+      setInquiryList(Array.isArray(inquiryData) ? inquiryData : []);
     };
 
     loadData();
@@ -206,10 +206,10 @@ export default function Reservation() {
   };
 
   // 페이지네이션 계산
-  const totalPages = Math.ceil(inquiryList.length / itemsPerPage);
+  const totalPages = Math.ceil((Array.isArray(inquiryList) ? inquiryList.length : 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentInquiries = inquiryList.slice(startIndex, endIndex);
+  const currentInquiries = (Array.isArray(inquiryList) ? inquiryList : []).slice(startIndex, endIndex);
 
   const generateDateOptions = () => {
     const dates = [];
