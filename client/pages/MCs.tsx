@@ -119,7 +119,7 @@ const defaultMcProfiles = [
 
 export default function MCs() {
   const [selectedRegion, setSelectedRegion] = useState("서울/경기");
-  const [mcProfiles, setMcProfiles] = useState(defaultMcProfiles);
+  const [mcProfiles, setMcProfiles] = useState<any[]>([]);
   const navigate = useNavigate();
 
   const regions = ["서울/경기", "광주/전남", "대전"];
@@ -200,27 +200,33 @@ export default function MCs() {
 
           {/* MC Profiles Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredMCs.map((mc) => (
-              <div
-                key={mc.id}
-                className="group cursor-pointer"
-                onClick={() => {
-                  navigate(`/mcs/${mc.id}`);
-                }}
-              >
-                <div className="relative overflow-hidden rounded-lg bg-pink-100 aspect-[4/5] mb-3">
-                  <img
-                    src={mc.image}
-                    alt={mc.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-                <h3 className="text-center text-sm font-medium text-gray-900">
-                  {mc.name}
-                </h3>
+            {filteredMCs.length === 0 ? (
+              <div className="col-span-full text-center text-gray-500 py-12">
+                등록된 사회자가 없습니다.
               </div>
-            ))}
+            ) : (
+              filteredMCs.map((mc) => (
+                <div
+                  key={mc.id}
+                  className="group cursor-pointer"
+                  onClick={() => {
+                    navigate(`/mcs/${mc.id}`);
+                  }}
+                >
+                  <div className="relative overflow-hidden rounded-lg bg-pink-100 aspect-[4/5] mb-3">
+                    <img
+                      src={mc.image}
+                      alt={mc.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                  <h3 className="text-center text-sm font-medium text-gray-900">
+                    {mc.name}
+                  </h3>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>
