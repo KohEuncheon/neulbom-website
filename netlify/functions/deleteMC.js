@@ -26,11 +26,13 @@ exports.handler = async function(event, context) {
   }
 
   const id = event.queryStringParameters && event.queryStringParameters.id;
-  if (!id) {
+  const isValidObjectId = id && /^[a-fA-F0-9]{24}$/.test(id);
+
+  if (!isValidObjectId) {
     return {
       statusCode: 400,
       headers,
-      body: 'Missing id',
+      body: 'Invalid id format',
     };
   }
 
