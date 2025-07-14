@@ -143,7 +143,7 @@ export function BannerSlide() {
       <div className="max-w-4xl mx-auto">
         <div className="relative rounded-lg overflow-hidden">
           {/* 배너 이미지 */}
-          <div className="relative h-64 md:h-80 lg:h-96 group">
+          <div className="relative w-[900px] h-[339px] max-w-full mx-auto group">
             {currentBanner?.link ? (
               <a
                 href={currentBanner.link}

@@ -199,7 +199,7 @@ export default function MCs() {
           </div>
 
           {/* MC Profiles Grid */}
-          <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 border">
+          <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 border mt-12 min-h-[600px] flex flex-col justify-start">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
               {filteredMCs.length === 0 ? (
                 <div className="col-span-full text-center text-gray-500 py-12">
@@ -221,8 +221,8 @@ export default function MCs() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
-                    <h3 className="text-center text-base font-medium text-gray-900 mt-2">
-                      {mc.name}
+                    <h3 className="text-center text-lg font-bold text-gray-900 mt-4 mb-2 tracking-tight">
+                      {mc.name.replace(/\s/g, "") + "사회자"}
                     </h3>
                   </div>
                 ))
