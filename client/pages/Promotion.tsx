@@ -130,7 +130,7 @@ export default function Promotion() {
                       </tr>
                     </thead>
                     <tbody>
-                      {promotions.map((promotion, index) => (
+                      {Array.isArray(promotions) && promotions.map((promotion, index) => (
                         <tr
                           key={promotion.id}
                           className="border-b hover:bg-gray-50 cursor-pointer"

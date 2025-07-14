@@ -149,7 +149,7 @@ export function BannerSlide() {
             {/* 슬라이드 인디케이터 */}
             {banners.length > 1 && (
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                {banners.map((_, index) => (
+                {Array.isArray(banners) && banners.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentIndex(index)}

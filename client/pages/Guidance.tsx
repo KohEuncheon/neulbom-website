@@ -129,7 +129,7 @@ export default function Guidance() {
                       </tr>
                     </thead>
                     <tbody>
-                      {tips.map((tip, index) => (
+                      {Array.isArray(tips) && tips.map((tip, index) => (
                         <tr
                           key={tip.id || index}
                           className="border-b hover:bg-gray-50 cursor-pointer"
