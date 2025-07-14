@@ -26,7 +26,19 @@ exports.handler = async function(event, context) {
     await client.connect();
     const db = client.db("test");
     const collection = db.collection("registeredMCs");
-    const data = await collection.find({}).sort({ registrationDate: -1 }).toArray();
+    // page, limit 쿼리 파라미터 파싱 (Netlify 환경 호환)
+    let page = 1;
+    let limit = 100; // 사회자 수가 많지 않으므로 넉넉하게 기본값 100
+    if (event.queryStringParameters) {
+      page = parseInt(event.queryStringParameters.page || '1', 10);
+      limit = parseInt(event.queryStringParameters.limit || '100', 10);
+    }
+    const skip = (page - 1) * limit;
+    const data = await collection.find({})
+      .sort({ registrationDate: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
     return {
       statusCode: 200,
       headers,

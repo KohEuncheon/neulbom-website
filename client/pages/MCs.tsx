@@ -129,28 +129,27 @@ export default function MCs() {
     const loadMCs = async () => {
       const registeredMCs = await fetchMCs();
       if (registeredMCs && registeredMCs.length > 0) {
-        // 등록된 사회자들만 표시
-        const mcsList = registeredMCs.map((registeredMc: any) => ({
-          id: registeredMc.id,
-          name: registeredMc.name,
-          region: registeredMc.region,
-          image:
-            registeredMc.profileImageBase64 ||
-            "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=400&fit=crop&crop=face",
-          profileColor: registeredMc.profileColor,
-          specialty: registeredMc.specialty,
-          introduction: registeredMc.introduction,
-          websiteUrl: registeredMc.websiteUrl,
-          registrationDate: registeredMc.registrationDate,
-        }));
-
+        // 가나다순 정렬
+        const mcsList = registeredMCs
+          .map((registeredMc: any) => ({
+            id: registeredMc.id,
+            name: registeredMc.name,
+            region: registeredMc.region,
+            image:
+              registeredMc.profileImageBase64 ||
+              "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=400&fit=crop&crop=face",
+            profileColor: registeredMc.profileColor,
+            specialty: registeredMc.specialty,
+            introduction: registeredMc.introduction,
+            websiteUrl: registeredMc.websiteUrl,
+            registrationDate: registeredMc.registrationDate,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
         setMcProfiles(mcsList);
       } else {
-        // 등록된 사회자가 없으면 빈 배열
         setMcProfiles([]);
       }
     };
-
     loadMCs();
   }, []);
 
@@ -159,9 +158,8 @@ export default function MCs() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
-
       <main className="flex-grow pt-24 pb-16">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-4xl mx-auto px-4">
           {/* Breadcrumb */}
           <div className="text-sm text-gray-500 mb-8">
             <button
@@ -173,65 +171,29 @@ export default function MCs() {
             <span> &gt; </span>
             <span>사회자</span>
           </div>
-
-          {/* Page Header */}
-          <div className="text-center mb-12">
-            <p className="text-gray-600 mb-4">
-              사회자 사진을 클릭하시면 약력/진행 영상/비용 등을 확인하실 수
-              있습니다. (가나다 순)
-            </p>
-
-            <div className="flex justify-center space-x-8 text-sm">
-              {regions.map((region) => (
-                <button
-                  key={region}
-                  onClick={() => setSelectedRegion(region)}
-                  className={`pb-1 ${
-                    selectedRegion === region
-                      ? "text-pink-500 border-b-2 border-pink-500"
-                      : "text-gray-600 hover:text-pink-500"
-                  }`}
-                >
-                  {region}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* MC Profiles Grid */}
-          <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 border mt-12 min-h-[600px] flex flex-col justify-start">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-              {filteredMCs.length === 0 ? (
-                <div className="col-span-full text-center text-gray-500 py-12">
-                  등록된 사회자가 없습니다.
+          {/* 사회자 카드 목록 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+            {filteredMCs.map((mc) => (
+              <div key={mc.id} className="flex flex-col items-center bg-pink-50 rounded-xl shadow-sm p-4">
+                <div className="overflow-hidden rounded-lg w-40 h-52 mb-2 flex items-end justify-center" style={{ background: '#ffe4ef' }}>
+                  <img
+                    src={mc.image}
+                    alt={mc.name}
+                    className="w-full h-full object-cover object-top"
+                    style={{ marginBottom: 0 }}
+                  />
                 </div>
-              ) : (
-                filteredMCs.map((mc) => (
-                  <div
-                    key={mc.id}
-                    className="group cursor-pointer flex flex-col items-center"
-                    onClick={() => {
-                      navigate(`/mcs/${mc.id}`);
-                    }}
-                  >
-                    <div className="relative overflow-hidden rounded-lg bg-pink-100 aspect-[4/5] w-full mb-3 shadow">
-                      <img
-                        src={mc.image}
-                        alt={mc.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <h3 className="text-center text-lg font-bold text-gray-900 mt-4 mb-2 tracking-tight">
-                      {mc.name.replace(/\s/g, "") + "사회자"}
-                    </h3>
-                  </div>
-                ))
-              )}
-            </div>
+                <span
+                  className="mt-1 text-xs"
+                  style={{ color: '#ff69b4', fontWeight: 400, fontSize: '0.95rem', marginTop: '0.2rem' }}
+                >
+                  {mc.name}사회자
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );
