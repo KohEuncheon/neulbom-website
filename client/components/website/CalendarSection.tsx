@@ -12,24 +12,37 @@ export function CalendarSection() {
   useEffect(() => {
     // 등록된 사회자 목록 불러오기 (서버에서 직접 fetch)
     const fetchMCs = async () => {
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
-      const response = await fetch(apiUrl);
-      if (response.ok) {
-        const data = await response.json();
-        setMcList(data);
+      try {
+        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          const data = await response.json();
+          setMcList(Array.isArray(data) ? data : []);
+        } else {
+          console.error('사회자 목록 불러오기 실패');
+          setMcList([]);
+        }
+      } catch (error) {
+        console.error('사회자 목록 불러오기 오류:', error);
+        setMcList([]);
       }
     };
     fetchMCs();
 
     // 확정된 예약만 불러오기 (기존 코드 유지)
-    const savedInquiries = localStorage.getItem("customerInquiries");
-    if (savedInquiries) {
-      const inquiries = JSON.parse(savedInquiries);
-      const confirmed = inquiries.filter(
-        (inquiry: any) => inquiry.status === "확정",
-      );
-      setConfirmedReservations(confirmed);
+    try {
+      const savedInquiries = localStorage.getItem("customerInquiries");
+      if (savedInquiries) {
+        const inquiries = JSON.parse(savedInquiries);
+        const confirmed = inquiries.filter(
+          (inquiry: any) => inquiry.status === "확정",
+        );
+        setConfirmedReservations(confirmed);
+      }
+    } catch (error) {
+      console.error('예약 데이터 불러오기 오류:', error);
+      setConfirmedReservations([]);
     }
   }, []);
 
@@ -172,7 +185,7 @@ export function CalendarSection() {
         {/* MC List - 가로 3명씩 컬러와 함께 표시 */}
         <div className="max-w-2xl mx-auto mb-8">
           <div className="flex flex-wrap gap-x-8 gap-y-3 justify-center text-sm">
-            {mcList.map((mc) => (
+            {Array.isArray(mcList) && mcList.map((mc) => (
               <div key={mc._id || mc.id} className="flex items-center min-w-[180px]">
                 <span
                   className="mr-2 text-base"

@@ -97,7 +97,19 @@ export function BannerSlide() {
 
   // 배너가 없으면 기본 배너 표시
   if (banners.length === 0) {
-    return null; // 샘플 배너 미노출
+    return (
+      <section className="px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="relative rounded-lg overflow-hidden">
+            <div className="relative w-[900px] h-[339px] max-w-full mx-auto bg-gray-100 flex items-center justify-center">
+              <div className="text-gray-400 text-center">
+                <p className="text-lg font-medium">배너를 불러오는 중...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   const currentBanner = banners[currentIndex];

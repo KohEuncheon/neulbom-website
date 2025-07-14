@@ -20,7 +20,23 @@ import Guidance from "./pages/Guidance";
 import Facilities from "./pages/Facilities";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// 전역 오류 핸들러 추가
+window.addEventListener('error', (event) => {
+  console.error('전역 오류:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('처리되지 않은 Promise 거부:', event.reason);
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
