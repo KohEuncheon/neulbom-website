@@ -1,28 +1,26 @@
-const mongoose = require('mongoose');
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://...'; // 실제 환경변수 사용
-
-let conn = null;
-
-const ReservationMC = new mongoose.Schema({
-  id: Number,
-  name: String,
-  region: String,
-  specialty: String,
-  status: String,
-  registrationDate: String,
-  profileImageBase64: String,
-  profileColor: String,
-  introduction: String,
-  websiteUrl: String,
-});
-
-const MC = mongoose.models.MC || mongoose.model('MC', ReservationMC);
+const { MongoClient, ObjectId } = require('mongodb');
 
 exports.handler = async function(event, context) {
+  // CORS 헤더 추가
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+  };
+
+  // OPTIONS 요청 처리 (preflight)
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
   if (event.httpMethod !== 'DELETE') {
     return {
       statusCode: 405,
+      headers,
       body: 'Method Not Allowed',
     };
   }
@@ -31,35 +29,42 @@ exports.handler = async function(event, context) {
   if (!id) {
     return {
       statusCode: 400,
+      headers,
       body: 'Missing id',
     };
   }
 
-  if (!conn) {
-    conn = await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
-      maxPoolSize: 10,
-    });
-  }
+  const uri = process.env.MONGODB_URI || 'mongodb+srv://...'; // 실제 환경변수 사용
+  const client = new MongoClient(uri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
 
   try {
-    const result = await MC.deleteOne({ id: Number(id) });
+    await client.connect();
+    const db = client.db('test');
+    const collection = db.collection('registeredMCs');
+    const result = await collection.deleteOne({ _id: new ObjectId(id) });
     if (result.deletedCount === 1) {
       return {
         statusCode: 200,
+        headers,
         body: JSON.stringify({ success: true }),
       };
     } else {
       return {
         statusCode: 404,
+        headers,
         body: 'MC not found',
       };
     }
   } catch (err) {
     return {
       statusCode: 500,
-      body: 'Error deleting MC',
+      headers,
+      body: 'Error deleting MC: ' + err.message,
     };
+  } finally {
+    await client.close();
   }
 }; 
