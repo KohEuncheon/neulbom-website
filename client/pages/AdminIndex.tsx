@@ -839,20 +839,22 @@ export default function AdminIndex() {
                   {inquiries.length > 0 ? (
                     inquiries.map((inquiry, index) => (
                       <tr
-                        key={inquiry.id}
+                        key={inquiry.id || index}
                         className="border-b hover:bg-gray-50 cursor-pointer h-10"
                         onClick={() => handleInquiryClick(inquiry)}
                       >
                         <td className="w-16 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap">{totalCount - ((currentPage - 1) * itemsPerPage + index)}</td>
                         <td className="text-left px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap overflow-hidden text-ellipsis">
-                          {inquiry.title}
-                          {inquiry.status === "확정" && (
+                          {(inquiry.title || '')}
+                          {(inquiry.status === "확정") && (
                             <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded text-[10px] font-semibold border border-green-200 align-middle">확정</span>
                           )}
                         </td>
                         <td className="w-32 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap">{inquiry.mc || "-"}</td>
-                        <td className="w-20 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.author}</td>
-                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.date || inquiry.createdAt || ''}</td>
+                        <td className="w-20 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.author || ''}</td>
+                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">
+                          {(inquiry.date || inquiry.createdAt || '').split('T')[0]}
+                        </td>
                       </tr>
                     ))
                   ) : (
