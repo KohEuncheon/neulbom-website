@@ -21,22 +21,25 @@ import { generateSampleInquiries } from "@/utils/generateSampleData";
 import * as XLSX from 'xlsx';
 
 // API 호출 함수들 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-const fetchInquiries = async () => {
+const fetchInquiries = async (page = 1, limit = 20) => {
   try {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/reservations' : '/.netlify/functions/getReservations';
-    
+    const apiUrl = isDevelopment
+      ? `http://localhost:3001/api/reservations?page=${page}&limit=${limit}`
+      : `/.netlify/functions/getReservations?page=${page}&limit=${limit}`;
+
     const response = await fetch(apiUrl);
     if (response.ok) {
-      const data = await response.json();
-      return data;
+      const result = await response.json();
+      // result: { data, totalCount }
+      return result;
     } else {
       console.error('문의 데이터 불러오기 실패');
-      return [];
+      return { data: [], totalCount: 0 };
     }
   } catch (error) {
     console.error('문의 데이터 불러오기 오류:', error);
-    return [];
+    return { data: [], totalCount: 0 };
   }
 };
 
@@ -244,6 +247,7 @@ export default function AdminIndex() {
   const [editingInquiry, setEditingInquiry] = useState<any>(null);
   const [showEditBannerModal, setShowEditBannerModal] = useState(false);
   const [editingBanner, setEditingBanner] = useState<any>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const itemsPerPage = 20;
 
   // 로그인 확인 및 데이터 로드
@@ -274,49 +278,50 @@ export default function AdminIndex() {
       const mcData = await fetchMCs();
       setMcList(mcData);
 
-      // 문의 데이터 불러오기 및 매핑 규칙 적용
-      const inquiryData = await fetchInquiries();
-      if (inquiryData.length > 0) {
-        // 매핑 규칙 적용 (엑셀 업로드와 동일하게)
-        const mapped = inquiryData.map((item: any, idx: number) => {
-          // 2부 여부
-          let secondPart = item.secondPart;
-          if (typeof secondPart === 'boolean') {
-            secondPart = secondPart ? '2부 있음' : '2부 없음';
-          } else if (typeof secondPart === 'string') {
-            if (secondPart.toLowerCase() === 'true') secondPart = '2부 있음';
-            else if (secondPart.toLowerCase() === 'false') secondPart = '2부 없음';
+      // 문의 데이터 불러오기 (서버 페이징)
+      const { data, totalCount } = await fetchInquiries(currentPage, itemsPerPage);
+      // 매핑 규칙 적용 (엑셀 업로드와 동일하게)
+      const mapped = data.map((item: any, idx: number) => {
+        // 2부 여부
+        let secondPart = item.secondPart;
+        if (typeof secondPart === 'boolean') {
+          secondPart = secondPart ? '2부 있음' : '2부 없음';
+        } else if (typeof secondPart === 'string') {
+          if (secondPart.toLowerCase() === 'true') secondPart = '2부 있음';
+          else if (secondPart.toLowerCase() === 'false') secondPart = '2부 없음';
+        }
+        // 예식날짜/시간 분리
+        let ceremonyDate = item.ceremonyDate || '';
+        let ceremonyTime = item.ceremonyTime || '';
+        if (item.ceremonyDate && !item.ceremonyTime) {
+          const dateStr = item.ceremonyDate.toString();
+          const match = dateStr.match(/(\d{4}-\d{2}-\d{2})[ T]?(\d{2}:\d{2})?/);
+          if (match) {
+            ceremonyDate = match[1];
+            ceremonyTime = match[2] || '';
           }
-          // 예식날짜/시간 분리
-          let ceremonyDate = item.ceremonyDate || '';
-          let ceremonyTime = item.ceremonyTime || '';
-          if (item.ceremonyDate && !item.ceremonyTime) {
-            const dateStr = item.ceremonyDate.toString();
-            const match = dateStr.match(/(\d{4}-\d{2}-\d{2})[ T]?(\d{2}:\d{2})?/);
-            if (match) {
-              ceremonyDate = match[1];
-              ceremonyTime = match[2] || '';
-            }
-          }
-          // 상태 매핑
-          let status = item.status;
-          if (status === '예약완료') status = '확정';
-          else if (status === '문의') status = '문의';
-          // 작성자/예식종류 등은 그대로
-          return {
-            ...item,
-            author: item.author || '',
-            ceremonyType: item.ceremonyType || '',
-            secondPart,
-            ceremonyDate,
-            ceremonyTime,
-            status,
-          };
-        });
-        setInquiries(mapped);
-      } else {
-        setInquiries([]);
-      }
+        }
+        // 상태 매핑
+        let status = item.status;
+        if (status === '예약완료') status = '확정';
+        else if (status === '문의') status = '문의';
+        // date/createdAt 동기화
+        let date = item.date || item.createdAt || '';
+        let createdAt = item.createdAt || item.date || '';
+        return {
+          ...item,
+          author: item.author || '',
+          ceremonyType: item.ceremonyType || '',
+          secondPart,
+          ceremonyDate,
+          ceremonyTime,
+          status,
+          date,
+          createdAt,
+        };
+      });
+      setInquiries(mapped);
+      setTotalCount(totalCount);
 
       // 배너 데이터 불러오기
       const bannerData = await fetchBanners();
@@ -332,7 +337,7 @@ export default function AdminIndex() {
     };
 
     loadData();
-  }, []);
+  }, [currentPage]);
 
   const handleLogout = () => {
     localStorage.removeItem("isAdminLoggedIn");
@@ -784,7 +789,7 @@ export default function AdminIndex() {
           if (!b.date) return -1;
           return b.date.localeCompare(a.date);
         });
-        const totalPages = Math.ceil(sortedInquiries.length / itemsPerPage);
+        const totalPages = Math.ceil(totalCount / itemsPerPage);
         const startIdx = (currentPage - 1) * itemsPerPage;
         const endIdx = startIdx + itemsPerPage;
         const pagedInquiries = sortedInquiries.slice(startIdx, endIdx);
@@ -844,7 +849,7 @@ export default function AdminIndex() {
                         </td>
                         <td className="w-32 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap">{inquiry.mc || "-"}</td>
                         <td className="w-20 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.author}</td>
-                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.date || ''}</td>
+                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.date || inquiry.createdAt || ''}</td>
                       </tr>
                     ))
                   ) : (
@@ -2776,12 +2781,15 @@ export default function AdminIndex() {
           if (otherNotesIdx !== -1) {
             otherNotes = row[otherNotesIdx] || '';
           }
-          // 생성일 → date
+          // 생성일 → date, createdAt 모두에 값 할당
           let date = '';
+          let createdAt = '';
           if (createdAtIdx !== -1 && row[createdAtIdx]) {
             date = row[createdAtIdx];
+            createdAt = row[createdAtIdx];
           } else {
             date = new Date().toISOString().split('T')[0];
+            createdAt = date;
           }
           // 사회자 이름에서 슬래시(/) 제거
           let mcName = '';
@@ -2809,6 +2817,7 @@ export default function AdminIndex() {
             status,
             otherNotes,
             date,
+            createdAt,
             mc: mcName,
           };
         });
@@ -2855,6 +2864,9 @@ export default function AdminIndex() {
       document.body.removeChild(textarea);
     }
   };
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
     <div className="min-h-screen bg-gray-50">

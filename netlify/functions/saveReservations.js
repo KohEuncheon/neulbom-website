@@ -17,12 +17,22 @@ exports.handler = async function(event, context) {
     };
   }
 
-  // page, limit 쿼리 파라미터 파싱
-  const url = new URL(event.rawUrl || `http://localhost${event.path}${event.rawQuery ? '?' + event.rawQuery : ''}`);
-  const page = parseInt(url.searchParams.get('page') || '1', 10);
-  const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-  const skip = (page - 1) * limit;
+  // 프론트엔드에서 보낸 데이터 받기 (배열)
+  let data;
+  try {
+    data = JSON.parse(event.body);
+    if (!Array.isArray(data)) {
+      throw new Error('입력 데이터가 배열이 아닙니다.');
+    }
+  } catch (err) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: '잘못된 입력 데이터: ' + err.message }),
+    };
+  }
 
+  // MongoDB Atlas URI
   const uri = "mongodb+srv://bbode2003:!Rhrhrhrh3142@cluster0.ypnaqhj.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0";
   const client = new MongoClient(uri, {
     useNewUrlParser: true,
@@ -33,16 +43,11 @@ exports.handler = async function(event, context) {
     await client.connect();
     const db = client.db("test");
     const collection = db.collection("reservations");
-    const totalCount = await collection.countDocuments({});
-    const data = await collection.find({})
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray();
+    const result = await collection.insertMany(data);
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ data, totalCount }),
+      body: JSON.stringify({ success: true, insertedCount: result.insertedCount }),
     };
   } catch (err) {
     return {
