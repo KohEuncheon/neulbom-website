@@ -916,13 +916,6 @@ export default function AdminIndex() {
                 >
                   + 사회자 등록
                 </Button>
-                <Button
-                  onClick={exportToExcel}
-                  variant="outline"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  📊 엑셀 EXPORT
-                </Button>
               </div>
             </div>
 
@@ -1036,13 +1029,6 @@ export default function AdminIndex() {
                 >
                   + 배너 추가
                 </Button>
-                <Button
-                  onClick={exportToExcel}
-                  variant="outline"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  📊 엑셀 EXPORT
-                </Button>
               </div>
             </div>
 
@@ -1135,13 +1121,6 @@ export default function AdminIndex() {
                   className="bg-pink-500 text-white hover:bg-pink-600"
                 >
                   + 프로모션 작성
-                </Button>
-                <Button
-                  onClick={exportToExcel}
-                  variant="outline"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  📊 엑셀 EXPORT
                 </Button>
               </div>
             </div>
@@ -1251,13 +1230,6 @@ export default function AdminIndex() {
                   className="bg-pink-500 text-white hover:bg-pink-600"
                 >
                   + 안내&TIP 추가
-                </Button>
-                <Button
-                  onClick={exportToExcel}
-                  variant="outline"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  📊 엑셀 EXPORT
                 </Button>
               </div>
             </div>
