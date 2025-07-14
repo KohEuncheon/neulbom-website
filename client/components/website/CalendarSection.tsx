@@ -369,7 +369,7 @@ export function CalendarSection() {
           <div className="bg-white rounded-lg max-w-md w-full max-h-[70vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">{selectedDate} 예약 현황</h2>
+                <h2 className="text-xl font-bold">{selectedDate} 예약 확인</h2>
                 <button
                   onClick={() => {
                     setShowDateModal(false);
@@ -380,66 +380,52 @@ export function CalendarSection() {
                   <X className="w-6 h-6" />
                 </button>
               </div>
-
-              <div className="space-y-4">
-                <table className="w-full text-sm border rounded-lg overflow-hidden">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-2 py-2 text-center font-medium text-gray-700 w-12">번호</th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700">제목</th>
-                      <th className="px-2 py-2 text-center font-medium text-gray-700 w-20">작성자</th>
-                      <th className="px-2 py-2 text-center font-medium text-gray-700 w-24">사회자</th>
-                      <th className="px-2 py-2 text-center font-medium text-gray-700 w-24">날짜</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const reservations = getReservationsForDate(parseInt(selectedDate.split("-")[2]));
-                      return reservations.length > 0 ? reservations.map((reservation, idx) => (
-                        <tr key={idx} className="border-b">
-                          <td className="px-2 py-2 text-center">{reservations.length - idx}</td>
-                          <td className="px-4 py-2 text-left">
-                            {reservation.title}
-                            {reservation.status === "확정" && (
-                              <span style={{
-                                display: 'inline-block',
-                                marginLeft: '8px',
-                                padding: '2px 8px',
-                                background: '#bbf7d0',
-                                color: '#166534',
-                                borderRadius: '8px',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                verticalAlign: 'middle',
-                                border: '1px solid #86efac',
-                              }}>
-                                확정
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-2 py-2 text-center w-20">{maskName(reservation.author)}</td>
-                          <td className="px-2 py-2 text-center w-24">{reservation.mc}</td>
-                          <td className="px-2 py-2 text-center w-24">{reservation.ceremonyDate}</td>
-                        </tr>
-                      )) : (
-                        <tr>
-                          <td colSpan={5} className="px-2 py-8 text-center text-gray-500">예약된 문의가 없습니다.</td>
-                        </tr>
-                      );
-                    })()}
-                  </tbody>
-                </table>
+              <div className="space-y-6 text-[15px] text-gray-800">
+                {(() => {
+                  // 해당 날짜의 '확정' 예약만 필터링
+                  const reservations = getReservationsForDate(parseInt(selectedDate.split("-")[2]))
+                    .filter((r) => r.status === "확정");
+                  if (reservations.length === 0) {
+                    return <div className="text-center text-gray-500 py-8">확정된 예약이 없습니다.</div>;
+                  }
+                  // 사회자별로 그룹핑
+                  const groupedByMc = reservations.reduce((acc: Record<string, any[]>, r) => {
+                    if (!acc[r.mc]) acc[r.mc] = [];
+                    acc[r.mc].push(r);
+                    return acc;
+                  }, {} as Record<string, any[]>);
+                  return Object.entries(groupedByMc).map(([mcName, mcReservations]) => (
+                    <div key={mcName} className="mb-4">
+                      <div className="font-bold text-gray-900 mb-1">[/ {mcName} / 사회자]</div>
+                      <div className="space-y-1">
+                        {mcReservations.map((r, idx) => (
+                          <div key={idx} className="pl-2">
+                            [{maskName(r.author)}] {r.ceremonyTime ? r.ceremonyTime + ' ' : ''}{r.weddingHall ? r.weddingHall + ' ' : ''}{r.otherNotes || ''} 예약
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
-
-              <div className="flex justify-center mt-6">
+              <div className="flex justify-end gap-2 mt-8">
                 <button
                   onClick={() => {
                     setShowDateModal(false);
                     setSelectedDate(null);
                   }}
-                  className="px-6 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600"
+                  className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
                 >
-                  닫기
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDateModal(false);
+                    setSelectedDate(null);
+                  }}
+                  className="px-4 py-2 rounded bg-pink-500 text-white hover:bg-pink-600"
+                >
+                  확인
                 </button>
               </div>
             </div>

@@ -2804,27 +2804,34 @@ export default function AdminIndex() {
             mc: mcName,
           };
         });
-        // 각 문의를 API로 저장
+        // 각 문의를 API로 저장 (유효성 검사 및 실패 안내 추가)
         let savedCount = 0;
-        for (const inquiry of newInquiries) {
+        let failedRows: { idx: number; reason: string; inquiry: any }[] = [];
+        for (const [idx, inquiry] of newInquiries.entries()) {
+          // 필수 필드 체크 (예: title, author, mc)
+          if (!inquiry.title || !inquiry.author || !inquiry.mc) {
+            failedRows.push({ idx: idx + 2, reason: '필수 필드 누락', inquiry });
+            continue;
+          }
           const success = await saveInquiry(inquiry);
           if (success) {
             savedCount++;
+          } else {
+            failedRows.push({ idx: idx + 2, reason: 'DB 저장 실패', inquiry });
           }
         }
-        
-        // 성공적으로 저장된 문의들만 상태에 추가
-        setInquiries((prev: any[]) => {
-          const merged = [...newInquiries, ...prev];
-          return merged;
-        });
-        
-        if (savedCount === newInquiries.length) {
-          alert('엑셀 데이터가 성공적으로 업로드되었습니다!');
+        // 업로드 후 DB에서 다시 fetch해서 목록 갱신
+        const updated = await fetchInquiries();
+        setInquiries(updated);
+        if (failedRows.length > 0) {
+          alert(
+            `엑셀 업로드 중 일부 실패 (${savedCount}/${newInquiries.length} 성공)\n` +
+            failedRows.map(row => `엑셀 ${row.idx}행: ${row.reason}`).join('\n')
+          );
+          console.error('엑셀 업로드 실패 행:', failedRows);
         } else {
-          alert(`엑셀 데이터 업로드 중 일부 실패했습니다. (${savedCount}/${newInquiries.length} 성공)`);
+          alert('엑셀 데이터가 100% 성공적으로 업로드되었습니다!');
         }
-        alert('엑셀 데이터가 성공적으로 업로드되었습니다!');
       } catch (err) {
         alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
       }
