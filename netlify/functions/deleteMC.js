@@ -35,10 +35,7 @@ exports.handler = async function(event, context) {
   }
 
   const uri = process.env.MONGODB_URI || 'mongodb+srv://...'; // 실제 환경변수 사용
-  const client = new MongoClient(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
+  const client = new MongoClient(uri);
 
   try {
     await client.connect();
@@ -59,6 +56,7 @@ exports.handler = async function(event, context) {
       };
     }
   } catch (err) {
+    console.error('Error deleting MC:', err, err.stack);
     return {
       statusCode: 500,
       headers,
