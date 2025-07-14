@@ -42,7 +42,7 @@ exports.handler = async function(event, context) {
   try {
     await client.connect();
     const db = client.db('test');
-    const collection = db.collection('registeredmcs');
+    const collection = db.collection('registeredMCs');
     const result = await collection.deleteOne({ _id: new ObjectId(id) });
     if (result.deletedCount === 1) {
       return {
