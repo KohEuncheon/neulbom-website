@@ -2812,33 +2812,24 @@ export default function AdminIndex() {
             mc: mcName,
           };
         });
-        // 각 문의를 API로 저장 (유효성 검사 및 실패 안내 추가)
-        let savedCount = 0;
-        let failedRows: { idx: number; reason: string; inquiry: any }[] = [];
-        for (const [idx, inquiry] of newInquiries.entries()) {
-          // 필수 필드 체크 (예: title, author, mc)
-          if (!inquiry.title || !inquiry.author || !inquiry.mc) {
-            failedRows.push({ idx: idx + 2, reason: '필수 필드 누락', inquiry });
-            continue;
-          }
-          const success = await saveInquiry(inquiry);
-          if (success) {
-            savedCount++;
-          } else {
-            failedRows.push({ idx: idx + 2, reason: 'DB 저장 실패', inquiry });
-          }
-        }
+        // 유효한 데이터만 필터링
+        const validInquiries = newInquiries.filter(
+          (inquiry) => inquiry.title && inquiry.author && inquiry.mc
+        );
+        // 한 번에 전체 업로드
+        const response = await fetch('/.netlify/functions/saveReservations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(validInquiries),
+        });
+        const result = await response.json();
         // 업로드 후 DB에서 다시 fetch해서 목록 갱신
         const updated = await fetchInquiries();
         setInquiries(updated);
-        if (failedRows.length > 0) {
-          alert(
-            `엑셀 업로드 중 일부 실패 (${savedCount}/${newInquiries.length} 성공)\n` +
-            failedRows.map(row => `엑셀 ${row.idx}행: ${row.reason}`).join('\n')
-          );
-          console.error('엑셀 업로드 실패 행:', failedRows);
+        if (result.success) {
+          alert(`엑셀 데이터가 ${result.insertedCount || validInquiries.length}개 성공적으로 업로드되었습니다!`);
         } else {
-          alert('엑셀 데이터가 100% 성공적으로 업로드되었습니다!');
+          alert('엑셀 업로드 중 오류가 발생했습니다: ' + (result.error || '알 수 없는 오류'));
         }
       } catch (err) {
         alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
