@@ -117,16 +117,11 @@ export default function MCDetail() {
           </div>
 
           {/* 사회자 이름 */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {mcData.name} 사회자
-            </h1>
-          </div>
 
           {/* 소개 내용 */}
           {mcData.introduction && (
             <div className="mb-12">
-              <div className="bg-gray-50 p-6 rounded-lg">
+              <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
                 <div
                   className="prose max-w-none text-center"
                   dangerouslySetInnerHTML={{

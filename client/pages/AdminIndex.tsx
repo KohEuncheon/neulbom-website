@@ -629,13 +629,24 @@ export default function AdminIndex() {
 
   // 사회자 삭제 처리
   const handleMcDelete = async () => {
-    const updatedMcList = mcList.filter((mc) => mc.id !== mcToDelete?.id);
-    setMcList(updatedMcList);
-    
-    // 삭제는 현재 API에서 지원하지 않으므로, 
-    // 로컬 상태만 업데이트하고 나중에 전체 목록을 다시 불러오는 방식으로 처리
-    alert("사회자가 삭제되었습니다.");
-
+    // 실제 DB에서 삭제
+    try {
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const apiUrl = isDevelopment ? `http://localhost:3001/api/mcs/${mcToDelete?.id}` : `/.netlify/functions/deleteMC?id=${mcToDelete?.id}`;
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        // 삭제 후 목록 다시 불러오기
+        const mcData = await fetchMCs();
+        setMcList(mcData);
+        alert("사회자가 삭제되었습니다.");
+      } else {
+        alert("삭제에 실패했습니다. 다시 시도해주세요.");
+      }
+    } catch (error) {
+      alert("삭제 중 오류가 발생했습니다.");
+    }
     setShowDeleteConfirm(false);
     setMcToDelete(null);
   };
