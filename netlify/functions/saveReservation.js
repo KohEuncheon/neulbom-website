@@ -23,8 +23,7 @@ exports.handler = async function(event, context) {
   // MongoDB Atlas URI (실제 클러스터 이름, 비밀번호, DB 이름 적용)
   const uri = "mongodb+srv://bbode2003:!Rhrhrhrh3142@cluster0.ypnaqhj.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0";
   const client = new MongoClient(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+    useNewUrlParser: true
   });
 
   try {

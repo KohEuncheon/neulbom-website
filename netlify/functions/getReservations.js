@@ -36,12 +36,13 @@ exports.handler = async function(event, context) {
 
   const uri = process.env.MONGODB_URI || "mongodb+srv://bbode2003:!Rhrhrhrh3142@cluster0.ypnaqhj.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0";
   const client = new MongoClient(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+    useNewUrlParser: true
   });
 
   try {
+    console.log('==== getReservations: DB 연결 시도 ====');
     await client.connect();
+    console.log('==== getReservations: DB 연결 성공 ====');
     const db = client.db("test");
     const collection = db.collection("reservations");
     const totalCount = await collection.countDocuments({});
@@ -50,12 +51,21 @@ exports.handler = async function(event, context) {
       .skip(skip)
       .limit(limit)
       .toArray();
+    console.log('==================== getReservations ====================');
+    console.log('data.length:', data.length, 'totalCount:', totalCount);
+    if (data.length > 0) {
+      console.log('샘플 데이터:', JSON.stringify(data[0]));
+    } else {
+      console.log('DB에서 읽은 데이터가 0개입니다.');
+    }
+    console.log('========================================================');
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ data, totalCount }),
     };
   } catch (err) {
+    console.log('==== getReservations: ERROR ====', err && err.message);
     return {
       statusCode: 500,
       headers,

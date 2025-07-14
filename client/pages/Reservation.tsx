@@ -4,22 +4,32 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 // API 호출 함수들 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-const fetchInquiries = async () => {
+const fetchInquiries = async (page = 1, limit = 20) => {
   try {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/reservations' : '/.netlify/functions/getReservations';
-    
+    const apiUrl = isDevelopment
+      ? `http://localhost:3001/api/reservations?page=${page}&limit=${limit}`
+      : `/.netlify/functions/getReservations?page=${page}&limit=${limit}`;
+
     const response = await fetch(apiUrl);
     if (response.ok) {
-      const data = await response.json();
-      return data;
+      const result = await response.json();
+      // 관리자 페이지와 동일하게 { data, totalCount } 구조 대응
+      if (result && Array.isArray(result.data)) {
+        return result;
+      } else if (Array.isArray(result)) {
+        // 혹시 배열만 올 때도 대응
+        return { data: result, totalCount: result.length };
+      } else {
+        return { data: [], totalCount: 0 };
+      }
     } else {
       console.error('문의 데이터 불러오기 실패');
-      return [];
+      return { data: [], totalCount: 0 };
     }
   } catch (error) {
     console.error('문의 데이터 불러오기 오류:', error);
-    return [];
+    return { data: [], totalCount: 0 };
   }
 };
 
@@ -87,6 +97,7 @@ export default function Reservation() {
   const [passwordError, setPasswordError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -100,13 +111,51 @@ export default function Reservation() {
       const mcNames = mcData.map((mc: any) => mc.name);
       setMcList(mcNames);
 
-      // 문의 목록 불러오기
-      const inquiryData = await fetchInquiries();
-      setInquiryList(Array.isArray(inquiryData) ? inquiryData : []);
+      // 문의 목록 불러오기 (서버 페이징)
+      const { data, totalCount } = await fetchInquiries(currentPage, itemsPerPage);
+      // 관리자 페이지와 동일하게 데이터 매핑
+      const mapped = Array.isArray(data) ? data.map((item: any, idx: number) => {
+        let secondPart = item.secondPart;
+        if (typeof secondPart === 'boolean') {
+          secondPart = secondPart ? '2부 있음' : '2부 없음';
+        } else if (typeof secondPart === 'string') {
+          if (secondPart.toLowerCase() === 'true') secondPart = '2부 있음';
+          else if (secondPart.toLowerCase() === 'false') secondPart = '2부 없음';
+        }
+        let ceremonyDate = item.ceremonyDate || '';
+        let ceremonyTime = item.ceremonyTime || '';
+        if (item.ceremonyDate && !item.ceremonyTime) {
+          const dateStr = item.ceremonyDate.toString();
+          const match = dateStr.match(/(\d{4}-\d{2}-\d{2})[ T]?(\d{2}:\d{2})?/);
+          if (match) {
+            ceremonyDate = match[1];
+            ceremonyTime = match[2] || '';
+          }
+        }
+        let status = item.status;
+        if (status === '예약완료') status = '확정';
+        else if (status === '문의') status = '문의';
+        let date = item.date || item.createdAt || '';
+        let createdAt = item.createdAt || item.date || '';
+        let weddingHall = item.weddingHall || item.place || '';
+        return {
+          ...item,
+          author: item.author || '',
+          ceremonyType: item.ceremonyType || '',
+          secondPart,
+          ceremonyDate,
+          ceremonyTime,
+          status,
+          date,
+          createdAt,
+          weddingHall,
+        };
+      }) : [];
+      setInquiryList(mapped);
+      setTotalCount(totalCount);
     };
-
     loadData();
-  }, []);
+  }, [currentPage]);
 
   const handleInquiryClick = (inquiry: any) => {
     setSelectedInquiry(inquiry);
@@ -206,10 +255,9 @@ export default function Reservation() {
   };
 
   // 페이지네이션 계산
-  const totalPages = Math.ceil((Array.isArray(inquiryList) ? inquiryList.length : 0) / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentInquiries = (Array.isArray(inquiryList) ? inquiryList : []).slice(startIndex, endIndex);
+  // 서버에서 이미 페이징된 데이터만 받으므로 프론트에서 slice 불필요
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const currentInquiries = Array.isArray(inquiryList) ? inquiryList : [];
 
   const generateDateOptions = () => {
     const dates = [];
@@ -567,7 +615,7 @@ export default function Reservation() {
                         className="border-b hover:bg-gray-50 cursor-pointer h-10"
                         onClick={() => handleInquiryClick(inquiry)}
                       >
-                        <td className="px-2 py-2 text-center w-16 h-10 align-middle">{inquiryList.length - (startIndex + index)}</td>
+                        <td className="px-2 py-2 text-center w-16 h-10 align-middle">{totalCount - index}</td>
                         <td className="px-4 pl-4 py-2 text-left h-10 align-middle">
                           <div className="flex items-center space-x-2">
                             <span>{inquiry.title}</span>
