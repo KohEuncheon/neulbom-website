@@ -813,7 +813,7 @@ export default function AdminIndex() {
                     <th className="w-auto text-left px-2 py-2 text-xs font-semibold text-gray-700">제목</th>
                     <th className="w-32 text-center px-2 py-2 text-xs font-semibold text-gray-700">사회자</th>
                     <th className="w-20 text-center px-2 py-2 text-xs font-semibold text-gray-700">작성자</th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 w-28 bg-gray-50" style={{ whiteSpace: 'nowrap' }}>예식 날짜</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 w-28 bg-gray-50" style={{ whiteSpace: 'nowrap' }}>작성일</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -833,7 +833,7 @@ export default function AdminIndex() {
                         </td>
                         <td className="w-32 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap">{inquiry.mc || "-"}</td>
                         <td className="w-20 text-center px-2 py-2 text-xs text-gray-700 align-middle whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.author}</td>
-                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.ceremonyDate || ''}</td>
+                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.date || ''}</td>
                       </tr>
                     ))
                   ) : (
