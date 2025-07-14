@@ -257,7 +257,7 @@ export default function Reservation() {
   // 페이지네이션 계산
   // 서버에서 이미 페이징된 데이터만 받으므로 프론트에서 slice 불필요
   const totalPages = Math.ceil(totalCount / itemsPerPage);
-  const currentInquiries = Array.isArray(inquiryList) ? inquiryList : [];
+  const currentInquiries = (inquiryList ?? []);
 
   const generateDateOptions = () => {
     const dates = [];

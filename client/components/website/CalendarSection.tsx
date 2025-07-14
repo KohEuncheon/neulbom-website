@@ -368,12 +368,12 @@ export function CalendarSection() {
               <div className="space-y-6 text-[15px] text-gray-800">
                 {(() => {
                   // 해당 날짜의 '확정' 예약만 필터링
-                  const reservations: any[] = Array.isArray(getReservationsForDate(parseInt(selectedDate.split("-")[2]))) ? getReservationsForDate(parseInt(selectedDate.split("-")[2])) : [];
-                  if (reservations.length === 0) {
+                  const reservations = (getReservationsForDate(parseInt(selectedDate.split("-")[2])) ?? []);
+                  if ((reservations ?? []).length === 0) {
                     return <div className="text-center text-gray-500 py-8">확정된 예약이 없습니다.</div>;
                   }
                   // 사회자별로 그룹핑
-                  const groupedByMc = reservations.filter((r) => r.status === "확정").reduce((acc: Record<string, any[]>, r) => {
+                  const groupedByMc = (reservations ?? []).filter((r) => r.status === "확정").reduce((acc: Record<string, any[]>, r) => {
                     if (!acc[r.mc]) acc[r.mc] = [];
                     acc[r.mc].push(r);
                     return acc;

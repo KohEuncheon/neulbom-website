@@ -834,8 +834,8 @@ export default function AdminIndex() {
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.isArray(inquiries) && inquiries.length > 0 ? (
-                    inquiries.map((inquiry, index) => (
+                  {((inquiries ?? []).length > 0 ?
+                    (inquiries ?? []).map((inquiry, index) => (
                       <tr
                         key={inquiry.id || index}
                         className="border-b hover:bg-gray-50 cursor-pointer h-10"
@@ -855,7 +855,7 @@ export default function AdminIndex() {
                         </td>
                       </tr>
                     ))
-                  ) : (
+                  : (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-gray-500 text-xs">등록된 문의가 없습니다.</td>
                     </tr>
