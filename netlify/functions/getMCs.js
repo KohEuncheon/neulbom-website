@@ -12,14 +12,12 @@ async function getClient() {
 }
 
 exports.handler = async function(event, context) {
-  // CORS 헤더 추가
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
   };
 
-  // OPTIONS 요청 처리 (preflight)
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -32,23 +30,45 @@ exports.handler = async function(event, context) {
     const client = await getClient();
     const db = client.db("test");
     const collection = db.collection("registeredMCs");
-    // page, limit 쿼리 파라미터 파싱 (Netlify 환경 호환)
+    // 파라미터 파싱
     let page = 1;
-    let limit = 100; // 사회자 수가 많지 않으므로 넉넉하게 기본값 100
+    let limit = 100;
+    let region = undefined;
+    let sort = 'registrationDate';
+    let sortOrder = -1;
+    let id = undefined;
     if (event.queryStringParameters) {
       page = parseInt(event.queryStringParameters.page || '1', 10);
       limit = parseInt(event.queryStringParameters.limit || '100', 10);
+      region = event.queryStringParameters.region;
+      sort = event.queryStringParameters.sort || 'registrationDate';
+      sortOrder = event.queryStringParameters.sortOrder === 'asc' ? 1 : -1;
+      id = event.queryStringParameters.id;
     }
     const skip = (page - 1) * limit;
-    const data = await collection.find({})
-      .sort({ registrationDate: -1 })
+    let query = {};
+    if (region) query.region = region;
+    if (id) query.id = isNaN(Number(id)) ? id : Number(id);
+    // 단일 MC 조회
+    if (id) {
+      const mc = await collection.findOne(query);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ data: mc ? [mc] : [], totalCount: mc ? 1 : 0 }),
+      };
+    }
+    // 목록 조회
+    const totalCount = await collection.countDocuments(query);
+    const data = await collection.find(query)
+      .sort({ [sort]: sortOrder })
       .skip(skip)
       .limit(limit)
       .toArray();
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(data),
+      body: JSON.stringify({ data, totalCount }),
     };
   } catch (err) {
     return {

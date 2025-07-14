@@ -4,22 +4,29 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 // API 호출 함수 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-const fetchMCs = async () => {
+type FetchMCsParams = {
+  id?: string | number;
+};
+const fetchMCs = async ({ id }: FetchMCsParams = {}) => {
   try {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
-    
+    const params = new URLSearchParams();
+    if (id) params.append('id', String(id));
+    const apiUrl = isDevelopment
+      ? `http://localhost:3001/api/mcs?${params.toString()}`
+      : `/.netlify/functions/getMCs?${params.toString()}`;
     const response = await fetch(apiUrl);
     if (response.ok) {
-      const data = await response.json();
-      return data;
+      const result = await response.json();
+      // { data, totalCount }
+      return result;
     } else {
       console.error('사회자 데이터 불러오기 실패');
-      return [];
+      return { data: [], totalCount: 0 };
     }
   } catch (error) {
     console.error('사회자 데이터 불러오기 오류:', error);
-    return [];
+    return { data: [], totalCount: 0 };
   }
 };
 
@@ -31,12 +38,15 @@ export default function MCDetail() {
 
   useEffect(() => {
     const loadMCData = async () => {
-      const registeredMCs = await fetchMCs();
-      if (registeredMCs && id) {
-        const foundMc = registeredMCs.find((mc: any) => mc.id.toString() === id);
-        if (foundMc) {
-          setMcData(foundMc);
-        }
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+      const { data } = await fetchMCs({ id });
+      if (Array.isArray(data) && data.length > 0) {
+        setMcData(data[0]);
+      } else {
+        setMcData(null);
       }
       setLoading(false);
     };
