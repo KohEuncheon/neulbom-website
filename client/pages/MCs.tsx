@@ -3,10 +3,13 @@ import { Footer } from "@/components/website/Footer";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-// API 호출 함수
+// API 호출 함수 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
 const fetchMCs = async () => {
   try {
-    const response = await fetch('/.netlify/functions/getMCs');
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
+    
+    const response = await fetch(apiUrl);
     if (response.ok) {
       const data = await response.json();
       return data;

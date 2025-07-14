@@ -20,10 +20,13 @@ import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { generateSampleInquiries } from "@/utils/generateSampleData";
 import * as XLSX from 'xlsx';
 
-// API 호출 함수들
+// API 호출 함수들 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
 const fetchInquiries = async () => {
   try {
-    const response = await fetch('/.netlify/functions/getReservations');
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/reservations' : '/.netlify/functions/getReservations';
+    
+    const response = await fetch(apiUrl);
     if (response.ok) {
       const data = await response.json();
       return data;
@@ -39,7 +42,10 @@ const fetchInquiries = async () => {
 
 const fetchMCs = async () => {
   try {
-    const response = await fetch('/.netlify/functions/getMCs');
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
+    
+    const response = await fetch(apiUrl);
     if (response.ok) {
       const data = await response.json();
       return data;
@@ -101,10 +107,13 @@ const fetchTips = async () => {
   }
 };
 
-// 데이터 저장 함수들
+// 데이터 저장 함수들 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
 const saveInquiry = async (inquiryData: any) => {
   try {
-    const response = await fetch('/.netlify/functions/saveReservation', {
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/reservations' : '/.netlify/functions/saveReservation';
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -120,7 +129,10 @@ const saveInquiry = async (inquiryData: any) => {
 
 const saveMC = async (mcData: any) => {
   try {
-    const response = await fetch('/.netlify/functions/saveMC', {
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/saveMC';
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -152,7 +164,10 @@ const saveBanner = async (bannerData: any) => {
 
 const savePromotion = async (promotionData: any) => {
   try {
-    const response = await fetch('/.netlify/functions/savePromotion', {
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/promotions' : '/.netlify/functions/savePromotion';
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -168,7 +183,10 @@ const savePromotion = async (promotionData: any) => {
 
 const saveTips = async (tipsData: any) => {
   try {
-    const response = await fetch('/.netlify/functions/saveTips', {
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/tips' : '/.netlify/functions/saveTips';
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

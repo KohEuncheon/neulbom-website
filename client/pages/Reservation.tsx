@@ -3,10 +3,13 @@ import { Footer } from "@/components/website/Footer";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
-// API 호출 함수들
+// API 호출 함수들 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
 const fetchInquiries = async () => {
   try {
-    const response = await fetch('/.netlify/functions/getReservations');
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/reservations' : '/.netlify/functions/getReservations';
+    
+    const response = await fetch(apiUrl);
     if (response.ok) {
       const data = await response.json();
       return data;
@@ -22,7 +25,10 @@ const fetchInquiries = async () => {
 
 const fetchMCs = async () => {
   try {
-    const response = await fetch('/.netlify/functions/getMCs');
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
+    
+    const response = await fetch(apiUrl);
     if (response.ok) {
       const data = await response.json();
       return data;
@@ -38,7 +44,10 @@ const fetchMCs = async () => {
 
 const saveInquiry = async (inquiryData: any) => {
   try {
-    const response = await fetch('/.netlify/functions/saveReservation', {
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment ? 'http://localhost:3001/api/reservations' : '/.netlify/functions/saveReservation';
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

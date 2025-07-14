@@ -13,13 +13,24 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB 연결
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://bbode2003:!Rhrhrhrh3142@cluster0.ypnaqhj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+let isConnected = false;
+
 mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("✅ MongoDB 연결 성공!"))
+  .connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    maxPoolSize: 10,
+  })
+  .then(() => {
+    console.log("✅ MongoDB 연결 성공!");
+    isConnected = true;
+  })
   .catch((err) => console.error("❌ MongoDB 연결 실패:", err));
 
-// 데이터 구조 정의 (스키마)
-const InquirySchema = new mongoose.Schema({
+// 데이터 구조 정의 (스키마) - Netlify 함수와 일치
+const ReservationSchema = new mongoose.Schema({
   title: String,
   password: String,
   author: String,
@@ -39,11 +50,16 @@ const InquirySchema = new mongoose.Schema({
 });
 
 const McSchema = new mongoose.Schema({
+  id: Number,
   name: String,
   region: String,
-  profileImage: String,
-  profileColor: String,
+  specialty: String,
   status: { type: String, default: "활동중" },
+  registrationDate: { type: String, default: () => new Date().toISOString().split("T")[0] },
+  profileImageBase64: String,
+  profileColor: String,
+  introduction: String,
+  websiteUrl: String,
 });
 
 const BannerSchema = new mongoose.Schema({
@@ -65,49 +81,53 @@ const TipsSchema = new mongoose.Schema({
   date: { type: String, default: () => new Date().toISOString().split("T")[0] },
 });
 
-// 데이터베이스 모델
-const Inquiry = mongoose.model("Inquiry", InquirySchema);
-const Mc = mongoose.model("Mc", McSchema);
-const Banner = mongoose.model("Banner", BannerSchema);
-const Promotion = mongoose.model("Promotion", PromotionSchema);
-const Tips = mongoose.model("Tips", TipsSchema);
+// 데이터베이스 모델 - Netlify 함수와 일치하는 컬렉션명 사용
+const Reservation = mongoose.model("reservations", ReservationSchema);
+const Mc = mongoose.model("registeredMCs", McSchema);
+const Banner = mongoose.model("bannerList", BannerSchema);
+const Promotion = mongoose.model("promotionList", PromotionSchema);
+const Tips = mongoose.model("tipsList", TipsSchema);
 
 // API 엔드포인트들
 
-// 문의 관련
-app.get("/api/inquiries", async (req, res) => {
+// 예약 관련
+app.get("/api/reservations", async (req, res) => {
+  if (!isConnected) {
+    return res.status(503).json({ error: "데이터베이스 연결 중입니다. 잠시 후 다시 시도해주세요." });
+  }
+  
   try {
-    const inquiries = await Inquiry.find().sort({ _id: -1 });
-    res.json(inquiries);
+    const reservations = await Reservation.find().sort({ _id: -1 });
+    res.json(reservations);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post("/api/inquiries", async (req, res) => {
+app.post("/api/reservations", async (req, res) => {
   try {
-    const inquiry = new Inquiry(req.body);
-    await inquiry.save();
-    res.json(inquiry);
+    const reservation = new Reservation(req.body);
+    await reservation.save();
+    res.json(reservation);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.put("/api/inquiries/:id", async (req, res) => {
+app.put("/api/reservations/:id", async (req, res) => {
   try {
-    const inquiry = await Inquiry.findByIdAndUpdate(req.params.id, req.body, {
+    const reservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
-    res.json(inquiry);
+    res.json(reservation);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.delete("/api/inquiries/:id", async (req, res) => {
+app.delete("/api/reservations/:id", async (req, res) => {
   try {
-    await Inquiry.findByIdAndDelete(req.params.id);
+    await Reservation.findByIdAndDelete(req.params.id);
     res.json({ message: "삭제 완료" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -116,6 +136,10 @@ app.delete("/api/inquiries/:id", async (req, res) => {
 
 // 사회자 관련
 app.get("/api/mcs", async (req, res) => {
+  if (!isConnected) {
+    return res.status(503).json({ error: "데이터베이스 연결 중입니다. 잠시 후 다시 시도해주세요." });
+  }
+  
   try {
     const mcs = await Mc.find();
     res.json(mcs);
