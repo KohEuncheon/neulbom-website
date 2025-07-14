@@ -47,7 +47,7 @@ exports.handler = async function(event, context) {
     const collection = db.collection("reservations");
     const totalCount = await collection.countDocuments({});
     const data = await collection.find({})
-      .sort({ ceremonyDate: -1, date: -1, createdAt: -1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray();
