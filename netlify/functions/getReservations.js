@@ -1,5 +1,16 @@
 const { MongoClient } = require('mongodb');
 
+let cachedClient = null;
+async function getClient() {
+  if (cachedClient && cachedClient.topology && cachedClient.topology.isConnected()) {
+    return cachedClient;
+  }
+  const uri = process.env.MONGODB_URI || "mongodb+srv://bbode2003:!Rhrhrhrh3142@cluster0.ypnaqhj.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0";
+  cachedClient = new MongoClient(uri);
+  await cachedClient.connect();
+  return cachedClient;
+}
+
 exports.handler = async function(event, context) {
   // CORS 헤더 추가
   const headers = {
@@ -34,14 +45,9 @@ exports.handler = async function(event, context) {
   }
   const skip = (page - 1) * limit;
 
-  const uri = process.env.MONGODB_URI || "mongodb+srv://bbode2003:!Rhrhrhrh3142@cluster0.ypnaqhj.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0";
-  const client = new MongoClient(uri, {
-    useNewUrlParser: true
-  });
-
   try {
     console.log('==== getReservations: DB 연결 시도 ====');
-    await client.connect();
+    const client = await getClient();
     console.log('==== getReservations: DB 연결 성공 ====');
     const db = client.db("test");
     const collection = db.collection("reservations");
@@ -72,6 +78,7 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({ error: err.message }),
     };
   } finally {
-    await client.close();
+    // Netlify/Lambda 환경에서는 커넥션을 닫지 않고 재사용
+    // await client.close();
   }
 }; 

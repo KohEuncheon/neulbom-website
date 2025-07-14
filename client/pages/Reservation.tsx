@@ -632,7 +632,7 @@ export default function Reservation() {
                           </div>
                         </td>
                         <td className="px-2 py-2 text-center w-28 h-10 align-middle" style={{ whiteSpace: 'nowrap' }}>{inquiry.author}</td>
-                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{inquiry.date || ''}</td>
+                        <td className="px-2 py-2 text-center w-28 h-10 align-middle text-xs text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{(inquiry.date || inquiry.createdAt || '').split('T')[0]}</td>
                       </tr>
                     ))
                   ) : inquiryList.length === 0 ? (
