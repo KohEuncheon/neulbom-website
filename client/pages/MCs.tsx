@@ -199,34 +199,35 @@ export default function MCs() {
           </div>
 
           {/* MC Profiles Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredMCs.length === 0 ? (
-              <div className="col-span-full text-center text-gray-500 py-12">
-                등록된 사회자가 없습니다.
-              </div>
-            ) : (
-              filteredMCs.map((mc) => (
-                <div
-                  key={mc.id}
-                  className="group cursor-pointer"
-                  onClick={() => {
-                    navigate(`/mcs/${mc.id}`);
-                  }}
-                >
-                  <div className="relative overflow-hidden rounded-lg bg-pink-100 aspect-[4/5] mb-3">
-                    <img
-                      src={mc.image}
-                      alt={mc.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  </div>
-                  <h3 className="text-center text-sm font-medium text-gray-900">
-                    {mc.name}
-                  </h3>
+          <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+              {filteredMCs.length === 0 ? (
+                <div className="col-span-full text-center text-gray-500 py-12">
+                  등록된 사회자가 없습니다.
                 </div>
-              ))
-            )}
+              ) : (
+                filteredMCs.map((mc) => (
+                  <div
+                    key={mc.id}
+                    className="group cursor-pointer flex flex-col items-center"
+                    onClick={() => {
+                      navigate(`/mcs/${mc.id}`);
+                    }}
+                  >
+                    <div className="relative overflow-hidden rounded-lg bg-pink-100 aspect-[4/5] w-full mb-3 shadow">
+                      <img
+                        src={mc.image}
+                        alt={mc.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <h3 className="text-center text-base font-medium text-gray-900 mt-2">
+                      {mc.name}
+                    </h3>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </main>
