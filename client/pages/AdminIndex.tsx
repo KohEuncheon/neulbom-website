@@ -909,13 +909,21 @@ export default function AdminIndex() {
           <div>
             <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
               <h1 className="text-2xl font-bold">사회자 관리</h1>
-              <Button
-                onClick={exportToExcel}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                📊 엑셀 EXPORT
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowMcModal(true)}
+                  className="bg-pink-500 text-white hover:bg-pink-600"
+                >
+                  + 사회자 등록
+                </Button>
+                <Button
+                  onClick={exportToExcel}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  📊 엑셀 EXPORT
+                </Button>
+              </div>
             </div>
 
             <div className="bg-white rounded-lg border max-w-4xl mx-auto">
@@ -1021,13 +1029,21 @@ export default function AdminIndex() {
           <div>
             <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
               <h1 className="text-2xl font-bold">배너 관리</h1>
-              <Button
-                onClick={exportToExcel}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                📊 엑셀 EXPORT
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowBannerModal(true)}
+                  className="bg-pink-500 text-white hover:bg-pink-600"
+                >
+                  + 배너 추가
+                </Button>
+                <Button
+                  onClick={exportToExcel}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  📊 엑셀 EXPORT
+                </Button>
+              </div>
             </div>
 
             <div className="bg-white rounded-lg border max-w-4xl mx-auto">
@@ -1113,13 +1129,21 @@ export default function AdminIndex() {
           <div>
             <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
               <h1 className="text-2xl font-bold">프로모션 관리</h1>
-              <Button
-                onClick={exportToExcel}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                📊 엑셀 EXPORT
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowPromotionModal(true)}
+                  className="bg-pink-500 text-white hover:bg-pink-600"
+                >
+                  + 프로모션 작성
+                </Button>
+                <Button
+                  onClick={exportToExcel}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  📊 엑셀 EXPORT
+                </Button>
+              </div>
             </div>
 
             <div className="bg-white rounded-lg border max-w-4xl mx-auto">
@@ -1221,13 +1245,21 @@ export default function AdminIndex() {
           <div>
             <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
               <h1 className="text-2xl font-bold">안내&TIP 관리</h1>
-              <Button
-                onClick={exportToExcel}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                📊 엑셀 EXPORT
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowTipsModal(true)}
+                  className="bg-pink-500 text-white hover:bg-pink-600"
+                >
+                  + 안내&TIP 추가
+                </Button>
+                <Button
+                  onClick={exportToExcel}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  📊 엑셀 EXPORT
+                </Button>
+              </div>
             </div>
 
             <div className="bg-white rounded-lg border max-w-4xl mx-auto">
