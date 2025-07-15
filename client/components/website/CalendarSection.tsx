@@ -1,13 +1,33 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, X } from "lucide-react";
+
+// 타입 선언 추가
+type Reservation = {
+  _id: string;
+  author: string;
+  mc: string;
+  ceremonyDate: string;
+  ceremonyTime?: string;
+  weddingHall?: string;
+  otherNotes?: string;
+  status: string;
+  date?: string;
+  createdAt?: string;
+};
+
+type GroupedReservation = {
+  _id: string;
+  reservations: Reservation[];
+};
 
 export function CalendarSection() {
   const [currentYear, setCurrentYear] = useState(2025);
   const [currentMonth, setCurrentMonth] = useState(7);
   const [mcList, setMcList] = useState<any[]>([]);
-  const [confirmedReservations, setConfirmedReservations] = useState<any[]>([]);
+  const [confirmedReservations, setConfirmedReservations] = useState<Reservation[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showDateModal, setShowDateModal] = useState(false);
+  const [groupedReservations, setGroupedReservations] = useState<GroupedReservation[]>([]);
 
   useEffect(() => {
     // 등록된 사회자 목록 불러오기 (서버에서 직접 fetch)
@@ -44,7 +64,27 @@ export function CalendarSection() {
       console.error('예약 데이터 불러오기 오류:', error);
       setConfirmedReservations([]);
     }
-  }, []);
+
+    // 날짜별/사회자별로 그룹핑된 예약 데이터를 API에서 받아오기
+    const fetchGroupedReservations = async () => {
+      try {
+        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const apiUrl = isDevelopment
+          ? `http://localhost:3001/api/grouped-reservations?date=${currentYear}-${String(currentMonth).padStart(2, "0")}`
+          : `/.netlify/functions/getGroupedReservations?date=${currentYear}-${String(currentMonth).padStart(2, "0")}`;
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          const data = await response.json();
+          setGroupedReservations(Array.isArray(data) ? data : []);
+        } else {
+          setGroupedReservations([]);
+        }
+      } catch (error) {
+        setGroupedReservations([]);
+      }
+    };
+    fetchGroupedReservations();
+  }, [currentYear, currentMonth]);
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month, 0).getDate();
@@ -55,11 +95,11 @@ export function CalendarSection() {
   };
 
   // 특정 날짜의 예약 가져오기
-  const getReservationsForDate = (day: number): any[] => {
+  const getReservationsForDate = (day: number): Reservation[] => {
     const dateStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return confirmedReservations.filter(
       (reservation) => reservation.ceremonyDate === dateStr,
-    ) as any[];
+    );
   };
 
   // 이름 마스킹 함수 - 두번째 글자를 *로
@@ -301,42 +341,23 @@ export function CalendarSection() {
 
                         <div className="space-y-1">
                           {/* MC별로 ●와 이름, 예약자(마스킹) 표시 */}
-                          {(() => {
-                            // 사회자별로 그룹핑
-                            const groupedByMc = useMemo(() => {
-                              return dayReservations.reduce((acc, reservation) => {
-                                if (!acc[reservation.mc]) acc[reservation.mc] = [];
-                                acc[reservation.mc].push(reservation);
-                                return acc;
-                              }, {});
-                            }, [dayReservations]);
-                            return Object.entries(groupedByMc).map(([mcName, mcReservations]) => (
-                              <div key={mcName} className="flex items-center gap-1 mb-1">
-                                <span
-                                  className="text-base"
-                                  style={{ color: getMcColor(mcName) }}
-                                >
-                                  ●
-                                </span>
-                                <span className="text-xs font-semibold text-gray-800 mr-1">
-                                  {mcName}
-                                </span>
-                                <div className="flex gap-0.5">
-                                  {mcReservations.map((reservation) => (
-                                    <div
-                                      key={reservation._id}
-                                      className="text-xs text-white px-1 py-0.5 rounded flex-shrink-0"
-                                      style={{
-                                        backgroundColor: getMcColor(reservation.mc),
-                                      }}
-                                    >
-                                      {maskName(reservation.author)}
-                                    </div>
-                                  ))}
-                                </div>
+                          {groupedReservations.map((group) => (
+                            <div key={group._id} className="flex items-center gap-1 mb-1">
+                              <span className="text-base" style={{ color: getMcColor(group._id) }}>●</span>
+                              <span className="text-xs font-semibold text-gray-800 mr-1">{group._id}</span>
+                              <div className="flex gap-0.5">
+                                {(group.reservations as Reservation[]).map((reservation) => (
+                                  <div
+                                    key={reservation._id}
+                                    className="text-xs text-white px-1 py-0.5 rounded flex-shrink-0"
+                                    style={{ backgroundColor: getMcColor(reservation.mc) }}
+                                  >
+                                    {maskName(reservation.author)}
+                                  </div>
+                                ))}
                               </div>
-                            ));
-                          })()}
+                            </div>
+                          ))}
                         </div>
                       </td>
                     );
@@ -381,17 +402,17 @@ export function CalendarSection() {
                     return <div className="text-center text-gray-500 py-8">확정된 예약이 없습니다.</div>;
                   }
                   // 사회자별로 그룹핑
-                  const groupedByMc = (reservations ?? []).filter((r) => r.status === "확정").reduce((acc: Record<string, any[]>, r) => {
+                  const groupedByMc = (reservations ?? []).filter((r) => r.status === "확정").reduce((acc: Record<string, Reservation[]>, r) => {
                     if (!acc[r.mc]) acc[r.mc] = [];
                     acc[r.mc].push(r);
                     return acc;
-                  }, {} as Record<string, any[]>);
+                  }, {} as Record<string, Reservation[]>);
                   return Object.entries(groupedByMc).map(([mcName, mcReservations]) => (
                     <div key={mcName} className="mb-4">
                       <div className="font-bold text-gray-900 mb-1">[/ {mcName} / 사회자]</div>
                       <div className="space-y-1">
-                        {mcReservations.map((r, idx) => (
-                          <div key={idx} className="pl-2">
+                        {(mcReservations as Reservation[]).map((r) => (
+                          <div key={r._id} className="pl-2">
                             [{maskName(r.author)}] {r.ceremonyTime ? r.ceremonyTime + ' ' : ''}{r.weddingHall ? r.weddingHall + ' ' : ''}{r.otherNotes || ''} 예약
                           </div>
                         ))}
