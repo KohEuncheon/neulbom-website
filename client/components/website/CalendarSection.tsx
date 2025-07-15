@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, X } from "lucide-react";
 
 export function CalendarSection() {
@@ -303,44 +303,39 @@ export function CalendarSection() {
                           {/* MC별로 ●와 이름, 예약자(마스킹) 표시 */}
                           {(() => {
                             // 사회자별로 그룹핑
-                            const groupedByMc = dayReservations.reduce(
-                              (acc: Record<string, any[]>, reservation) => {
-                                if (!acc[reservation.mc]) {
-                                  acc[reservation.mc] = [];
-                                }
+                            const groupedByMc = useMemo(() => {
+                              return dayReservations.reduce((acc, reservation) => {
+                                if (!acc[reservation.mc]) acc[reservation.mc] = [];
                                 acc[reservation.mc].push(reservation);
                                 return acc;
-                              },
-                              {} as Record<string, any[]>,
-                            );
-                            return (Object.entries(groupedByMc) as [string, any[]][]).map(
-                              ([mcName, mcReservations]) => (
-                                <div key={mcName} className="flex items-center gap-1 mb-1">
-                                  <span
-                                    className="text-base"
-                                    style={{ color: getMcColor(mcName) }}
-                                  >
-                                    ●
-                                  </span>
-                                  <span className="text-xs font-semibold text-gray-800 mr-1">
-                                    {mcName}
-                                  </span>
-                                  <div className="flex gap-0.5">
-                                    {mcReservations.map((reservation, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="text-xs text-white px-1 py-0.5 rounded flex-shrink-0"
-                                        style={{
-                                          backgroundColor: getMcColor(reservation.mc),
-                                        }}
-                                      >
-                                        {maskName(reservation.author)}
-                                      </div>
-                                    ))}
-                                  </div>
+                              }, {});
+                            }, [dayReservations]);
+                            return Object.entries(groupedByMc).map(([mcName, mcReservations]) => (
+                              <div key={mcName} className="flex items-center gap-1 mb-1">
+                                <span
+                                  className="text-base"
+                                  style={{ color: getMcColor(mcName) }}
+                                >
+                                  ●
+                                </span>
+                                <span className="text-xs font-semibold text-gray-800 mr-1">
+                                  {mcName}
+                                </span>
+                                <div className="flex gap-0.5">
+                                  {mcReservations.map((reservation) => (
+                                    <div
+                                      key={reservation._id}
+                                      className="text-xs text-white px-1 py-0.5 rounded flex-shrink-0"
+                                      style={{
+                                        backgroundColor: getMcColor(reservation.mc),
+                                      }}
+                                    >
+                                      {maskName(reservation.author)}
+                                    </div>
+                                  ))}
                                 </div>
-                              ),
-                            );
+                              </div>
+                            ));
                           })()}
                         </div>
                       </td>

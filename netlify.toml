@@ -8,6 +8,8 @@
   node_bundler = "esbuild"
 
 [functions.getBannerList]
+  memory = 1024 # 1GB
+  timeout = 20  # 20초
   region = "ap-northeast-2"
 
 # API 라우팅 개선
