@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getBanners, Banner as BannerType } from "@/shared/api";
 
 // 타입 정의
 type Banner = {
@@ -71,52 +73,27 @@ const fetchBanners = async ({ page = 1, limit = 10, sort = 'date', sortOrder = '
 };
 
 export function BannerSlide() {
-  const [banners, setBanners] = useState<Banner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const itemsPerPage = 10;
 
-  // 배너 로딩 함수 메모이제이션
-  const loadBanners = useCallback(async () => {
-    setIsLoading(true);
-    const { data, totalCount } = await fetchBanners({
+  // React Query로 배너 목록 가져오기
+  const {
+    data,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["banners", currentPage, itemsPerPage],
+    queryFn: () => getBanners({
       page: currentPage,
       limit: itemsPerPage,
-      sort: 'date',
-      sortOrder: 'desc',
-    });
-    setBanners(data);
-    setTotalCount(totalCount);
-    setCurrentIndex(0);
-    setIsLoading(false);
-  }, [currentPage, itemsPerPage]);
+      sort: "date",
+      sortOrder: "desc",
+    }),
+  });
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadBannersWithCleanup = async () => {
-      await loadBanners();
-      if (!isMounted) return;
-    };
-    
-    loadBannersWithCleanup();
-    
-    // 주기적으로 배너 목록 새로고침 (5분마다)
-    const interval = setInterval(() => {
-      if (isMounted) {
-        loadBanners();
-      }
-    }, 5 * 60 * 1000);
-    
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [loadBanners]);
-
-  // 페이지네이션 계산 메모이제이션
+  const banners: BannerType[] = data?.data || [];
+  const totalCount: number = data?.totalCount || 0;
   const totalPages = useMemo(() => Math.ceil(totalCount / itemsPerPage), [totalCount, itemsPerPage]);
 
   // 슬라이드 자동 변경
@@ -127,7 +104,6 @@ export function BannerSlide() {
           prevIndex === banners.length - 1 ? 0 : prevIndex + 1,
         );
       }, 10000);
-
       return () => clearInterval(interval);
     }
   }, [banners.length]);
@@ -153,11 +129,7 @@ export function BannerSlide() {
     setCurrentPage(page);
   }, []);
 
-  // 현재 배너 메모이제이션
-  const currentBanner = useMemo(() => 
-    banners[currentIndex] || null, 
-    [banners, currentIndex]
-  );
+  const currentBanner = useMemo(() => banners[currentIndex] || null, [banners, currentIndex]);
 
   // 로딩 상태 표시
   if (isLoading || banners.length === 0) {

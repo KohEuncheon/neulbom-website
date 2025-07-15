@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getMCs, getGroupedReservations, MC } from "@/shared/api";
 
 // 타입 선언 추가
 type Reservation = {
@@ -23,67 +25,35 @@ type GroupedReservation = {
 export function CalendarSection() {
   const [currentYear, setCurrentYear] = useState(2025);
   const [currentMonth, setCurrentMonth] = useState(7);
-  const [mcList, setMcList] = useState<any[]>([]);
-  const [confirmedReservations, setConfirmedReservations] = useState<Reservation[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showDateModal, setShowDateModal] = useState(false);
-  const [groupedReservations, setGroupedReservations] = useState<GroupedReservation[]>([]);
-
+  // MC 목록
+  const { data: mcData } = useQuery({
+    queryKey: ["calendar-mcs"],
+    queryFn: () => getMCs(),
+  });
+  const mcList: MC[] = mcData?.data || [];
+  // 그룹핑된 예약 목록
+  const { data: groupedData } = useQuery({
+    queryKey: ["grouped-reservations", currentYear, currentMonth],
+    queryFn: () => getGroupedReservations({
+      date: `${currentYear}-${String(currentMonth).padStart(2, "0")}`
+    }),
+  });
+  const groupedReservations: GroupedReservation[] = groupedData || [];
+  // 확정된 예약만 localStorage에서 불러오기(기존 유지)
+  const [confirmedReservations, setConfirmedReservations] = useState<Reservation[]>([]);
   useEffect(() => {
-    // 등록된 사회자 목록 불러오기 (서버에서 직접 fetch)
-    const fetchMCs = async () => {
-      try {
-        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
-        const response = await fetch(apiUrl);
-        if (response.ok) {
-          const data = await response.json();
-          setMcList(Array.isArray(data) ? data : []);
-        } else {
-          console.error('사회자 목록 불러오기 실패');
-          setMcList([]);
-        }
-      } catch (error) {
-        console.error('사회자 목록 불러오기 오류:', error);
-        setMcList([]);
-      }
-    };
-    fetchMCs();
-
-    // 확정된 예약만 불러오기 (기존 코드 유지)
     try {
       const savedInquiries = localStorage.getItem("customerInquiries");
       if (savedInquiries) {
         const inquiries = JSON.parse(savedInquiries);
-        const confirmed = inquiries.filter(
-          (inquiry: any) => inquiry.status === "확정",
-        );
+        const confirmed = inquiries.filter((inquiry: any) => inquiry.status === "확정");
         setConfirmedReservations(confirmed);
       }
     } catch (error) {
-      console.error('예약 데이터 불러오기 오류:', error);
       setConfirmedReservations([]);
     }
-
-    // 날짜별/사회자별로 그룹핑된 예약 데이터를 API에서 받아오기
-    const fetchGroupedReservations = async () => {
-      try {
-        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const apiUrl = isDevelopment
-          ? `http://localhost:3001/api/grouped-reservations?date=${currentYear}-${String(currentMonth).padStart(2, "0")}`
-          : `/.netlify/functions/getGroupedReservations?date=${currentYear}-${String(currentMonth).padStart(2, "0")}`;
-        const response = await fetch(apiUrl);
-        if (response.ok) {
-          const data = await response.json();
-          setGroupedReservations(Array.isArray(data) ? data : []);
-        } else {
-          setGroupedReservations([]);
-        }
-      } catch (error) {
-        setGroupedReservations([]);
-      }
-    };
-    fetchGroupedReservations();
   }, [currentYear, currentMonth]);
 
   const getDaysInMonth = (year: number, month: number) => {

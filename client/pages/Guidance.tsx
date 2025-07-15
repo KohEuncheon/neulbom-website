@@ -1,65 +1,31 @@
 import { Header } from "@/components/website/Header";
 import { Footer } from "@/components/website/Footer";
-import { useState, useEffect } from "react";
-
-// 개선된 fetchTips: page, limit, sort 파라미터 지원
-type FetchTipsParams = {
-  page?: number;
-  limit?: number;
-  sort?: string;
-  sortOrder?: string;
-};
-const fetchTips = async ({ page = 1, limit = 20, sort = 'date', sortOrder = 'desc' }: FetchTipsParams = {}) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const params = new URLSearchParams();
-    params.append('page', String(page));
-    params.append('limit', String(limit));
-    params.append('sort', sort);
-    params.append('sortOrder', sortOrder === 'asc' ? 'asc' : 'desc');
-    const apiUrl = isDevelopment
-      ? `http://localhost:3001/api/tips?${params.toString()}`
-      : `/.netlify/functions/getTipsList?${params.toString()}`;
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const result = await response.json();
-      // { data, totalCount }
-      return result;
-    } else {
-      console.error('팁 데이터 불러오기 실패');
-      return { data: [], totalCount: 0 };
-    }
-  } catch (error) {
-    console.error('팁 데이터 불러오기 오류:', error);
-    return { data: [], totalCount: 0 };
-  }
-};
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getTips, Tip } from "@/shared/api";
 
 export default function Guidance() {
-  const [tips, setTips] = useState<any[]>([]);
-  const [selectedTip, setSelectedTip] = useState<any>(null);
+  const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20);
-  const [totalCount, setTotalCount] = useState(0);
+  const itemsPerPage = 20;
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadTips = async () => {
-      const { data, totalCount } = await fetchTips({
-        page: currentPage,
-        limit: itemsPerPage,
-        sort: 'date',
-        sortOrder: 'desc',
-      });
-      if (isMounted) {
-        setTips(Array.isArray(data) ? data : []);
-        setTotalCount(totalCount);
-      }
-    };
-    loadTips();
-    return () => { isMounted = false; };
-  }, [currentPage, itemsPerPage]);
+  // React Query로 팁 목록 가져오기
+  const {
+    data,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["tips", currentPage, itemsPerPage],
+    queryFn: () => getTips({
+      page: currentPage,
+      limit: itemsPerPage,
+      sort: "date",
+      sortOrder: "desc",
+    }),
+  });
 
+  const tips: Tip[] = data?.data || [];
+  const totalCount: number = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
@@ -112,7 +78,11 @@ export default function Guidance() {
           ) : (
             /* 안내&TIP 목록 테이블 */
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-              {tips.length > 0 ? (
+              {isLoading ? (
+                <div className="text-center py-12 text-gray-400">안내&TIP을 불러오는 중...</div>
+              ) : error ? (
+                <div className="text-center py-12 text-red-500">안내&TIP 데이터를 불러오지 못했습니다.</div>
+              ) : tips.length > 0 ? (
                 <div>
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b">
@@ -131,7 +101,7 @@ export default function Guidance() {
                     <tbody>
                       {Array.isArray(tips) && tips.map((tip, index) => (
                         <tr
-                          key={tip.id || index}
+                          key={tip._id || index}
                           className="border-b hover:bg-gray-50 cursor-pointer"
                           onClick={() => setSelectedTip(tip)}
                         >

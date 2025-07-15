@@ -2,59 +2,21 @@ import { Header } from "@/components/website/Header";
 import { Footer } from "@/components/website/Footer";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-
-// API 호출 함수 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-type FetchMCsParams = {
-  id?: string | number;
-};
-const fetchMCs = async ({ id }: FetchMCsParams = {}) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const params = new URLSearchParams();
-    if (id) params.append('id', String(id));
-    const apiUrl = isDevelopment
-      ? `http://localhost:3001/api/mcs?${params.toString()}`
-      : `/.netlify/functions/getMCs?${params.toString()}`;
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const result = await response.json();
-      // { data, totalCount }
-      return result;
-    } else {
-      console.error('사회자 데이터 불러오기 실패');
-      return { data: [], totalCount: 0 };
-    }
-  } catch (error) {
-    console.error('사회자 데이터 불러오기 오류:', error);
-    return { data: [], totalCount: 0 };
-  }
-};
+import { useQuery } from "@tanstack/react-query";
+import { getMCs, MC } from "@/shared/api";
 
 export default function MCDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [mcData, setMcData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  // React Query로 MC 상세 데이터 가져오기
+  const { data, isLoading } = useQuery({
+    queryKey: ["mc-detail", id],
+    queryFn: () => getMCs({ id }),
+    enabled: !!id,
+  });
+  const mcData: MC | null = Array.isArray(data?.data) && data.data.length > 0 ? data.data[0] : null;
 
-  useEffect(() => {
-    const loadMCData = async () => {
-      if (!id) {
-        setLoading(false);
-        return;
-      }
-      const { data } = await fetchMCs({ id });
-      if (Array.isArray(data) && data.length > 0) {
-        setMcData(data[0]);
-      } else {
-        setMcData(null);
-      }
-      setLoading(false);
-    };
-
-    loadMCData();
-  }, [id]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">

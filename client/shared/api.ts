@@ -16,6 +16,7 @@ export interface MC {
   profileImageBase64?: string;
   profileColor?: string;
   introduction?: string;
+  websiteUrl?: string;
 }
 export interface Promotion {
   _id: string;
@@ -113,4 +114,9 @@ export const saveTips = (data: Partial<Tip>) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
+};
+// 그룹핑된 예약 목록
+export const getGroupedReservations = (params = {}) => {
+  const query = new URLSearchParams(params as Record<string, string>).toString();
+  return fetcher<any[]>(`${BASE_URL}/grouped-reservations?${query}`);
 }; 
