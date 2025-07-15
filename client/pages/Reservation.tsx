@@ -1,75 +1,9 @@
 import { Header } from "@/components/website/Header";
 import { Footer } from "@/components/website/Footer";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-
-// API 호출 함수들 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-const fetchInquiries = async (page = 1, limit = 20) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment
-      ? `http://localhost:3001/api/reservations?page=${page}&limit=${limit}`
-      : `/.netlify/functions/getReservations?page=${page}&limit=${limit}`;
-
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const result = await response.json();
-      // 관리자 페이지와 동일하게 { data, totalCount } 구조 대응
-      if (result && Array.isArray(result.data)) {
-        return result;
-      } else if (Array.isArray(result)) {
-        // 혹시 배열만 올 때도 대응
-        return { data: result, totalCount: result.length };
-      } else {
-        return { data: [], totalCount: 0 };
-      }
-    } else {
-      console.error('문의 데이터 불러오기 실패');
-      return { data: [], totalCount: 0 };
-    }
-  } catch (error) {
-    console.error('문의 데이터 불러오기 오류:', error);
-    return { data: [], totalCount: 0 };
-  }
-};
-
-const fetchMCs = async () => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
-    
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const data = await response.json();
-      return data;
-    } else {
-      console.error('사회자 데이터 불러오기 실패');
-      return [];
-    }
-  } catch (error) {
-    console.error('사회자 데이터 불러오기 오류:', error);
-    return [];
-  }
-};
-
-const saveInquiry = async (inquiryData: any) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/reservations' : '/.netlify/functions/saveReservation';
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(inquiryData),
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('문의 저장 오류:', error);
-    return false;
-  }
-};
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getReservations, getMCs, saveReservation, Reservation as ReservationType, MC } from "@/shared/api";
 
 export default function Reservation() {
   const [formData, setFormData] = useState({
@@ -88,76 +22,66 @@ export default function Reservation() {
     linkUrl: "",
     otherNotes: "",
   });
-
   const [showLinkInput, setShowLinkInput] = useState(false);
-  const [inquiryList, setInquiryList] = useState<any[]>([]);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [selectedInquiry, setSelectedInquiry] = useState<any>(null);
+  const [selectedInquiry, setSelectedInquiry] = useState<ReservationType | null>(null);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20);
-  const [totalCount, setTotalCount] = useState(0);
-
+  const itemsPerPage = 20;
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const queryClient = useQueryClient();
 
-  // 등록된 사회자 목록 불러오기
-  const [mcList, setMcList] = useState<string[]>([]);
+  // MC 목록
+  const { data: mcData } = useQuery({
+    queryKey: ["mcs"],
+    queryFn: () => getMCs(),
+  });
+  const mcList: string[] = (mcData?.data || []).map((mc: MC) => mc.name);
 
-  useEffect(() => {
-    const loadData = async () => {
-      // 사회자 목록 불러오기
-      const mcData = await fetchMCs();
-      const mcNames = mcData.map((mc: any) => mc.name);
-      setMcList(mcNames);
+  // 문의 목록
+  const {
+    data: reservationData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["reservations", currentPage, itemsPerPage],
+    queryFn: () => getReservations({ page: currentPage, limit: itemsPerPage }),
+  });
+  const inquiryList: ReservationType[] = reservationData?.data || [];
+  const totalCount: number = reservationData?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-      // 문의 목록 불러오기 (서버 페이징)
-      const { data, totalCount } = await fetchInquiries(currentPage, itemsPerPage);
-      // 관리자 페이지와 동일하게 데이터 매핑
-      const mapped = Array.isArray(data) ? data.map((item: any, idx: number) => {
-        let secondPart = item.secondPart;
-        if (typeof secondPart === 'boolean') {
-          secondPart = secondPart ? '2부 있음' : '2부 없음';
-        } else if (typeof secondPart === 'string') {
-          if (secondPart.toLowerCase() === 'true') secondPart = '2부 있음';
-          else if (secondPart.toLowerCase() === 'false') secondPart = '2부 없음';
-        }
-        let ceremonyDate = item.ceremonyDate || '';
-        let ceremonyTime = item.ceremonyTime || '';
-        if (item.ceremonyDate && !item.ceremonyTime) {
-          const dateStr = item.ceremonyDate.toString();
-          const match = dateStr.match(/(\d{4}-\d{2}-\d{2})[ T]?(\d{2}:\d{2})?/);
-          if (match) {
-            ceremonyDate = match[1];
-            ceremonyTime = match[2] || '';
-          }
-        }
-        let status = item.status;
-        if (status === '예약완료') status = '확정';
-        else if (status === '문의') status = '문의';
-        let date = item.date || item.createdAt || '';
-        let createdAt = item.createdAt || item.date || '';
-        let weddingHall = item.weddingHall || item.place || '';
-        return {
-          ...item,
-          author: item.author || '',
-          ceremonyType: item.ceremonyType || '',
-          secondPart,
-          ceremonyDate,
-          ceremonyTime,
-          status,
-          date,
-          createdAt,
-          weddingHall,
-        };
-      }) : [];
-      setInquiryList(mapped);
-      setTotalCount(totalCount);
-    };
-    loadData();
-  }, [currentPage]);
+  // 문의 저장
+  const mutation = useMutation({
+    mutationFn: (newInquiry: any) => saveReservation(newInquiry),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      alert("✅ 예약 문의가 정상적으로 접수되었습니다!\n\n💝 소중한 문의 감사드리며, 빠른 시일 내에 연락드리겠습니다.");
+      setFormData({
+        title: "",
+        password: "",
+        author: "",
+        spouse: "",
+        phone: "",
+        mc: "",
+        weddingHall: "",
+        ceremonyType: "",
+        secondPart: "",
+        ceremonyDate: "",
+        ceremonyTime: "",
+        howDidYouHear: "",
+        linkUrl: "",
+        otherNotes: "",
+      });
+      setShowLinkInput(false);
+    },
+    onError: () => {
+      alert("문의 접수에 실패했습니다. 다시 시도해주세요.");
+    },
+  });
 
-  const handleInquiryClick = (inquiry: any) => {
+  const handleInquiryClick = (inquiry: ReservationType) => {
     setSelectedInquiry(inquiry);
     setShowPasswordModal(true);
     setPasswordInput("");
@@ -165,11 +89,10 @@ export default function Reservation() {
   };
 
   const handlePasswordSubmit = () => {
-    if (passwordInput === selectedInquiry.password) {
+    if (passwordInput === selectedInquiry?.password) {
       setShowPasswordModal(false);
-      // 상세 정보 표시 (새 모달이나 페이지로)
       alert(
-        `💒 문의 내용 확인\n\n📝 제목: ${selectedInquiry.title}\n👤 작성자: ${selectedInquiry.author}\n💑 배우자: ${selectedInquiry.spouse}\n📞 연락처: ${selectedInquiry.phone}\n🎤 사회자: ${selectedInquiry.mc}\n🏰 웨딩홀: ${selectedInquiry.weddingHall}\n📅 예식날짜: ${selectedInquiry.ceremonyDate}\n⏰ 예식시간: ${selectedInquiry.ceremonyTime}\n📋 기타사항: ${selectedInquiry.otherNotes}`,
+        `💒 문의 내용 확인\n\n📝 제목: ${selectedInquiry?.title}\n👤 작성자: ${selectedInquiry?.author}\n💑 배우자: ${selectedInquiry?.spouse}\n📞 연락처: ${selectedInquiry?.phone}\n🎤 사회자: ${selectedInquiry?.mc}\n🏰 웨딩홀: ${selectedInquiry?.weddingHall}\n📅 예식날짜: ${selectedInquiry?.ceremonyDate}\n⏰ 예식시간: ${selectedInquiry?.ceremonyTime}\n📋 기타사항: ${selectedInquiry?.otherNotes}`,
       );
     } else {
       setPasswordError("비밀번호가 일치하지 않습니다.");
@@ -178,10 +101,8 @@ export default function Reservation() {
 
   // 예식 종류
   const ceremonyTypes = ["주례 없는 예식", "주례 있는 예식"];
-
   // 2부 진행 여부
   const secondPartOptions = ["2부 있음", "2부 없음"];
-
   // 처음 늘봄을 접한 경로
   const howDidYouHearOptions = [
     "지인 소개",
@@ -207,67 +128,15 @@ export default function Reservation() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // 새로운 문의글 생성
     const newInquiry = {
-      id: Date.now().toString(), // 고유 ID
+      id: Date.now().toString(),
       ...formData,
       date: new Date().toISOString().split("T")[0],
       status: "접수",
     };
-
-    // API를 통해 저장
-    const success = await saveInquiry(newInquiry);
-
-    if (success) {
-      // 상태 업데이트하여 목록 새로고침
-      const updatedInquiries = await fetchInquiries();
-      setInquiryList(updatedInquiries);
-
-      console.log("예약 문의 데이터:", newInquiry);
-      alert(
-        "✅ 예약 문의가 정상적으로 접수되었습니다!\n\n💝 소중한 문의 감사드리며, 빠른 시일 내에 연락드리겠습니다.",
-      );
-
-      // 폼 초기화
-      setFormData({
-        title: "",
-        password: "",
-        author: "",
-        spouse: "",
-        phone: "",
-        mc: "",
-        weddingHall: "",
-        ceremonyType: "",
-        secondPart: "",
-        ceremonyDate: "",
-        ceremonyTime: "",
-        howDidYouHear: "",
-        linkUrl: "",
-        otherNotes: "",
-      });
-      setShowLinkInput(false);
-    } else {
-      alert("문의 접수에 실패했습니다. 다시 시도해주세요.");
-    }
-  };
-
-  // 페이지네이션 계산
-  // 서버에서 이미 페이징된 데이터만 받으므로 프론트에서 slice 불필요
-  const totalPages = Math.ceil(totalCount / itemsPerPage);
-  const currentInquiries = (inquiryList ?? []);
-
-  const generateDateOptions = () => {
-    const dates = [];
-    const today = new Date();
-    for (let i = 0; i < 365; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      dates.push(date.toISOString().split("T")[0]);
-    }
-    return dates;
+    mutation.mutate(newInquiry);
   };
 
   return (
@@ -608,8 +477,8 @@ export default function Reservation() {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentInquiries.length > 0 ? (
-                    currentInquiries.map((inquiry, index) => (
+                  {inquiryList.length > 0 ? (
+                    inquiryList.map((inquiry, index) => (
                       <tr
                         key={inquiry.id}
                         className="border-b hover:bg-gray-50 cursor-pointer h-10"

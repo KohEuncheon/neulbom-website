@@ -1,66 +1,31 @@
 import { Header } from "@/components/website/Header";
 import { Footer } from "@/components/website/Footer";
-import { useState, useEffect } from "react";
-
-// API 호출 함수 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-// 개선된 fetchPromotions: page, limit, sort 파라미터 지원
-type FetchPromotionsParams = {
-  page?: number;
-  limit?: number;
-  sort?: string;
-  sortOrder?: string;
-};
-const fetchPromotions = async ({ page = 1, limit = 20, sort = 'date', sortOrder = 'desc' }: FetchPromotionsParams = {}) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const params = new URLSearchParams();
-    params.append('page', String(page));
-    params.append('limit', String(limit));
-    params.append('sort', sort);
-    params.append('sortOrder', sortOrder === 'asc' ? 'asc' : 'desc');
-    const apiUrl = isDevelopment
-      ? `http://localhost:3001/api/promotions?${params.toString()}`
-      : `/.netlify/functions/getPromotionList?${params.toString()}`;
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const result = await response.json();
-      // { data, totalCount }
-      return result;
-    } else {
-      console.error('프로모션 데이터 불러오기 실패');
-      return { data: [], totalCount: 0 };
-    }
-  } catch (error) {
-    console.error('프로모션 데이터 불러오기 오류:', error);
-    return { data: [], totalCount: 0 };
-  }
-};
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getPromotions, Promotion as PromotionType } from "@/shared/api";
 
 export default function Promotion() {
-  const [promotions, setPromotions] = useState<any[]>([]);
-  const [selectedPromotion, setSelectedPromotion] = useState<any>(null);
+  const [selectedPromotion, setSelectedPromotion] = useState<PromotionType | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20);
-  const [totalCount, setTotalCount] = useState(0);
+  const itemsPerPage = 20;
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadPromotions = async () => {
-      const { data, totalCount } = await fetchPromotions({
-        page: currentPage,
-        limit: itemsPerPage,
-        sort: 'date',
-        sortOrder: 'desc',
-      });
-      if (isMounted) {
-        setPromotions(Array.isArray(data) ? data : []);
-        setTotalCount(totalCount);
-      }
-    };
-    loadPromotions();
-    return () => { isMounted = false; };
-  }, [currentPage, itemsPerPage]);
+  // React Query로 프로모션 목록 가져오기
+  const {
+    data,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["promotions", currentPage, itemsPerPage],
+    queryFn: () => getPromotions({
+      page: currentPage,
+      limit: itemsPerPage,
+      sort: "date",
+      sortOrder: "desc",
+    }),
+  });
 
+  const promotions: PromotionType[] = data?.data || [];
+  const totalCount: number = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
@@ -103,17 +68,18 @@ export default function Promotion() {
               </div>
               <div
                 className="prose max-w-none text-gray-700"
-                dangerouslySetInnerHTML={{
-                  __html: selectedPromotion.content
-                    ?.replace(/05515[^:]*삽입된 페이지 내용\s*:\s*/g, "")
-                    ?.replace(/05515.*?:/g, ""),
-                }}
-              />
+              >
+                {selectedPromotion.title}
+              </div>
             </div>
           ) : (
             /* 프로모션 목록 테이블 */
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-              {promotions.length > 0 ? (
+              {isLoading ? (
+                <div className="text-center py-12 text-gray-400">프로모션을 불러오는 중...</div>
+              ) : error ? (
+                <div className="text-center py-12 text-red-500">프로모션 데이터를 불러오지 못했습니다.</div>
+              ) : promotions.length > 0 ? (
                 <div>
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b">
@@ -132,7 +98,7 @@ export default function Promotion() {
                     <tbody>
                       {Array.isArray(promotions) && promotions.map((promotion, index) => (
                         <tr
-                          key={promotion.id}
+                          key={promotion._id}
                           className="border-b hover:bg-gray-50 cursor-pointer"
                           onClick={() => setSelectedPromotion(promotion)}
                         >

@@ -14,208 +14,31 @@ import {
   MapPin,
   Mail,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Header } from "@/components/website/Header";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import * as XLSX from 'xlsx';
-
-// API 호출 함수들 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-const fetchInquiries = async (page = 1, limit = 20) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment
-      ? `http://localhost:3001/api/reservations?page=${page}&limit=${limit}`
-      : `/.netlify/functions/getReservations?page=${page}&limit=${limit}`;
-
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const result = await response.json();
-      // result: { data, totalCount }
-      return result;
-    } else {
-      console.error('문의 데이터 불러오기 실패');
-      return { data: [], totalCount: 0 };
-    }
-  } catch (error) {
-    console.error('문의 데이터 불러오기 오류:', error);
-    return { data: [], totalCount: 0 };
-  }
-};
-
-const fetchMCs = async () => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/getMCs';
-    
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const data = await response.json();
-      return data;
-    } else {
-      console.error('사회자 데이터 불러오기 실패');
-      return [];
-    }
-  } catch (error) {
-    console.error('사회자 데이터 불러오기 오류:', error);
-    return [];
-  }
-};
-
-const fetchBanners = async () => {
-  try {
-    const response = await fetch('/.netlify/functions/getBannerList');
-    if (response.ok) {
-      const data = await response.json();
-      return data;
-    } else {
-      console.error('배너 데이터 불러오기 실패');
-      return [];
-    }
-  } catch (error) {
-    console.error('배너 데이터 불러오기 오류:', error);
-    return [];
-  }
-};
-
-const fetchPromotions = async () => {
-  try {
-    const response = await fetch('/.netlify/functions/getPromotionList');
-    if (response.ok) {
-      const data = await response.json();
-      return data;
-    } else {
-      console.error('프로모션 데이터 불러오기 실패');
-      return [];
-    }
-  } catch (error) {
-    console.error('프로모션 데이터 불러오기 오류:', error);
-    return [];
-  }
-};
-
-const fetchTips = async () => {
-  try {
-    const response = await fetch('/.netlify/functions/getTipsList');
-    if (response.ok) {
-      const data = await response.json();
-      return data;
-    } else {
-      console.error('팁 데이터 불러오기 실패');
-      return [];
-    }
-  } catch (error) {
-    console.error('팁 데이터 불러오기 오류:', error);
-    return [];
-  }
-};
-
-// 데이터 저장 함수들 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-const saveInquiry = async (inquiryData: any) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/reservations' : '/.netlify/functions/saveReservation';
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(inquiryData),
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('문의 저장 오류:', error);
-    return false;
-  }
-};
-
-const saveMC = async (mcData: any) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/mcs' : '/.netlify/functions/saveMC';
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(mcData),
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('사회자 저장 오류:', error);
-    return false;
-  }
-};
-
-const saveBanner = async (bannerData: any) => {
-  try {
-    const response = await fetch('/.netlify/functions/saveBanner', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(bannerData),
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('배너 저장 오류:', error);
-    return false;
-  }
-};
-
-const savePromotion = async (promotionData: any) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/promotions' : '/.netlify/functions/savePromotion';
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(promotionData),
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('프로모션 저장 오류:', error);
-    return false;
-  }
-};
-
-const saveTips = async (tipsData: any) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment ? 'http://localhost:3001/api/tips' : '/.netlify/functions/saveTips';
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(tipsData),
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('팁 저장 오류:', error);
-    return false;
-  }
-};
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getReservations, getMCs, getBanners, getPromotions, getTips,
+  saveReservation, saveMC, saveBanner, savePromotion, saveTips,
+  Reservation as ReservationType, MC, Banner, Promotion, Tip
+} from "@/shared/api";
 
 export default function AdminIndex() {
   const [currentTab, setCurrentTab] = useState("inquiries");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedInquiry, setSelectedInquiry] = useState<any>(null);
+  const [selectedInquiry, setSelectedInquiry] = useState<ReservationType | null>(null);
   const [showInquiryDetail, setShowInquiryDetail] = useState(false);
   const [showMcModal, setShowMcModal] = useState(false);
   const [showPromotionModal, setShowPromotionModal] = useState(false);
   const [showBannerModal, setShowBannerModal] = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
-  const [selectedMc, setSelectedMc] = useState<any>(null);
+  const [selectedMc, setSelectedMc] = useState<MC | null>(null);
   const [showMcDetail, setShowMcDetail] = useState(false);
   const [showEditMcModal, setShowEditMcModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [mcToDelete, setMcToDelete] = useState<any>(null);
+  const [mcToDelete, setMcToDelete] = useState<MC | null>(null);
   const [mcFormData, setMcFormData] = useState({
     name: "",
     region: "",
@@ -224,13 +47,11 @@ export default function AdminIndex() {
     introduction: "",
     websiteUrl: "",
   });
-  const [mcList, setMcList] = useState<any[]>([]);
   const [bannerFormData, setBannerFormData] = useState({
     title: "",
     image: null as File | null,
     link: "",
   });
-  const [bannerList, setBannerList] = useState<any[]>([]);
   const [promotionFormData, setPromotionFormData] = useState({
     title: "",
     content: "",
@@ -239,106 +60,54 @@ export default function AdminIndex() {
     title: "",
     content: "",
   });
-  const [promotionList, setPromotionList] = useState<any[]>([]);
-  const [tipsList, setTipsList] = useState<any[]>([]);
-  const [inquiries, setInquiries] = useState<any[]>([]);
   const [showInquiryEdit, setShowInquiryEdit] = useState(false);
-  const [editingInquiry, setEditingInquiry] = useState<any>(null);
+  const [editingInquiry, setEditingInquiry] = useState<ReservationType | null>(null);
   const [showEditBannerModal, setShowEditBannerModal] = useState(false);
-  const [editingBanner, setEditingBanner] = useState<any>(null);
-  const [totalCount, setTotalCount] = useState(0);
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const itemsPerPage = 20;
+  const queryClient = useQueryClient();
 
-  // 로그인 확인 및 데이터 로드
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isAdminLoggedIn");
-    const expirationTime = localStorage.getItem("adminLoginExpiration");
-    const currentTime = new Date().getTime();
+  // 데이터 패칭 (React Query)
+  const { data: inquiriesData } = useQuery({
+    queryKey: ["admin-inquiries", currentPage, itemsPerPage],
+    queryFn: () => getReservations({ page: currentPage, limit: itemsPerPage }),
+  });
+  const inquiries: ReservationType[] = inquiriesData?.data || [];
+  const totalCount: number = inquiriesData?.totalCount || 0;
 
-    if (
-      !isLoggedIn ||
-      !expirationTime ||
-      currentTime > parseInt(expirationTime)
-    ) {
-      localStorage.removeItem("isAdminLoggedIn");
-      localStorage.removeItem("adminLoginExpiration");
-      window.location.href = "/";
-    } else {
-      const newExpirationTime = new Date().getTime() + 7 * 24 * 60 * 60 * 1000;
-      localStorage.setItem(
-        "adminLoginExpiration",
-        newExpirationTime.toString(),
-      );
-    }
+  const { data: mcData } = useQuery({ queryKey: ["admin-mcs"], queryFn: () => getMCs() });
+  const mcList: MC[] = mcData?.data || [];
 
-    // API에서 데이터 불러오기
-    const loadData = async () => {
-      // 사회자 목록 불러오기
-      const mcData = await fetchMCs();
-      setMcList(mcData);
+  const { data: bannerData } = useQuery({ queryKey: ["admin-banners"], queryFn: () => getBanners() });
+  const bannerList: Banner[] = bannerData?.data || [];
 
-      // 문의 데이터 불러오기 (서버 페이징)
-      const { data, totalCount } = await fetchInquiries(currentPage, itemsPerPage);
-      const mapped = Array.isArray(data) ? data.map((item: any, idx: number) => {
-        // 2부 여부
-        let secondPart = item.secondPart;
-        if (typeof secondPart === 'boolean') {
-          secondPart = secondPart ? '2부 있음' : '2부 없음';
-        } else if (typeof secondPart === 'string') {
-          if (secondPart.toLowerCase() === 'true') secondPart = '2부 있음';
-          else if (secondPart.toLowerCase() === 'false') secondPart = '2부 없음';
-        }
-        // 예식날짜/시간 분리
-        let ceremonyDate = item.ceremonyDate || '';
-        let ceremonyTime = item.ceremonyTime || '';
-        if (item.ceremonyDate && !item.ceremonyTime) {
-          const dateStr = item.ceremonyDate.toString();
-          const match = dateStr.match(/(\d{4}-\d{2}-\d{2})[ T]?(\d{2}:\d{2})?/);
-          if (match) {
-            ceremonyDate = match[1];
-            ceremonyTime = match[2] || '';
-          }
-        }
-        // 상태 매핑
-        let status = item.status;
-        if (status === '예약완료') status = '확정';
-        else if (status === '문의') status = '문의';
-        // date/createdAt 동기화
-        let date = item.date || item.createdAt || '';
-        let createdAt = item.createdAt || item.date || '';
-        // weddingHall 보완: 없으면 place 값 사용
-        let weddingHall = item.weddingHall || item.place || '';
-        return {
-          ...item,
-          author: item.author || '',
-          ceremonyType: item.ceremonyType || '',
-          secondPart,
-          ceremonyDate,
-          ceremonyTime,
-          status,
-          date,
-          createdAt,
-          weddingHall,
-        };
-      }) : [];
-      setInquiries(mapped);
-      setTotalCount(totalCount);
+  const { data: promotionData } = useQuery({ queryKey: ["admin-promotions"], queryFn: () => getPromotions() });
+  const promotionList: Promotion[] = promotionData?.data || [];
 
-      // 배너 데이터 불러오기
-      const bannerData = await fetchBanners();
-      setBannerList(Array.isArray(bannerData) ? bannerData : []);
+  const { data: tipsData } = useQuery({ queryKey: ["admin-tips"], queryFn: () => getTips() });
+  const tipsList: Tip[] = tipsData?.data || [];
 
-      // 프로모션 데이터 불러오기
-      const promotionData = await fetchPromotions();
-      setPromotionList(Array.isArray(promotionData) ? promotionData : []);
-
-      // 팁 데이터 불러오기
-      const tipsData = await fetchTips();
-      setTipsList(Array.isArray(tipsData) ? tipsData : []);
-    };
-
-    loadData();
-  }, [currentPage]);
+  // 데이터 저장 (React Query Mutation)
+  const saveInquiryMutation = useMutation({
+    mutationFn: (inquiry: any) => saveReservation(inquiry),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-inquiries"] }),
+  });
+  const saveMcMutation = useMutation({
+    mutationFn: (mc: any) => saveMC(mc),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-mcs"] }),
+  });
+  const saveBannerMutation = useMutation({
+    mutationFn: (banner: any) => saveBanner(banner),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-banners"] }),
+  });
+  const savePromotionMutation = useMutation({
+    mutationFn: (promotion: any) => savePromotion(promotion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-promotions"] }),
+  });
+  const saveTipsMutation = useMutation({
+    mutationFn: (tips: any) => saveTips(tips),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-tips"] }),
+  });
 
   const handleLogout = () => {
     localStorage.removeItem("isAdminLoggedIn");
@@ -354,8 +123,8 @@ export default function AdminIndex() {
     { id: "tips", name: "안내&TIP 관리" },
   ];
 
-  const handleInquiryClick = (inquiry: any) => {
-    setEditingInquiry({ ...inquiry });
+  const handleInquiryClick = (inquiry: ReservationType) => {
+    setEditingInquiry(inquiry);
     setShowInquiryEdit(true);
   };
 
@@ -424,7 +193,7 @@ export default function AdminIndex() {
     };
 
     // API로 저장
-    const success = await saveMC(newMc);
+    const success = await saveMcMutation.mutateAsync(newMc);
     if (success) {
       const updatedMcList = [...mcList, newMc];
       setMcList(updatedMcList);
@@ -569,7 +338,7 @@ export default function AdminIndex() {
     setInquiries(updatedInquiries);
     
     // API로 저장 (수정된 문의를 다시 저장)
-    const success = await saveInquiry(editingInquiry);
+    const success = await saveInquiryMutation.mutateAsync(editingInquiry);
     if (success) {
       alert("문의가 성공적으로 수정되었습니다.");
     } else {
@@ -644,8 +413,8 @@ export default function AdminIndex() {
       });
       if (response.ok) {
         // 삭제 후 목록 다시 불러오기
-        const mcData = await fetchMCs();
-        setMcList(mcData);
+        const mcData = await getMCs();
+        setMcList(mcData?.data || []);
         alert("사회자가 삭제되었습니다.");
       } else {
         alert("삭제에 실패했습니다. 다시 시도해주세요.");
@@ -670,7 +439,7 @@ export default function AdminIndex() {
     };
 
     // API로 저장
-    const success = await savePromotion(newPromotion);
+    const success = await savePromotionMutation.mutateAsync(newPromotion);
     if (success) {
       const updatedPromotionList = [...promotionList, newPromotion];
       setPromotionList(updatedPromotionList);
@@ -702,7 +471,7 @@ export default function AdminIndex() {
       };
 
       // API로 저장
-      const success = await saveBanner(newBanner);
+      const success = await saveBannerMutation.mutateAsync(newBanner);
       if (success) {
         const updatedBannerList = [...bannerList, newBanner];
         setBannerList(updatedBannerList);
@@ -733,7 +502,7 @@ export default function AdminIndex() {
       };
 
       // API로 저장
-      const success = await saveBanner(newBanner);
+      const success = await saveBannerMutation.mutateAsync(newBanner);
       if (success) {
         const updatedBannerList = [...bannerList, newBanner];
         setBannerList(updatedBannerList);
@@ -764,7 +533,7 @@ export default function AdminIndex() {
     };
 
     // API로 저장
-    const success = await saveTips(newTip);
+    const success = await saveTipsMutation.mutateAsync(newTip);
     if (success) {
       const updatedTipsList = [...tipsList, newTip];
       setTipsList(updatedTipsList);
@@ -2299,16 +2068,6 @@ export default function AdminIndex() {
   const renderEditBannerModal = () => {
     if (!showEditBannerModal || !editingBanner) return null;
 
-    useEffect(() => {
-      if (editingBanner) {
-        setBannerFormData({
-          title: editingBanner.title,
-          image: null,
-          link: editingBanner.link || "",
-        });
-      }
-    }, [editingBanner]);
-
     return (
       <div
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -2843,8 +2602,8 @@ export default function AdminIndex() {
         });
         const result = await response.json();
         // 업로드 후 DB에서 다시 fetch해서 목록 갱신
-        const updated = await fetchInquiries();
-        setInquiries(updated);
+        const updated = await getReservations({ page: currentPage, limit: itemsPerPage });
+        setInquiries(updated.data);
         if (result.success) {
           alert(`엑셀 데이터가 ${result.insertedCount || validInquiries.length}개 성공적으로 업로드되었습니다!`);
         } else {
@@ -2891,9 +2650,9 @@ export default function AdminIndex() {
       const response = await fetch(apiUrl, { method: 'DELETE' });
       if (response.ok) {
         // 삭제 후 목록 새로고침
-        const { data, totalCount } = await fetchInquiries(currentPage, itemsPerPage);
-        setInquiries(data);
-        setTotalCount(totalCount);
+        const updated = await getReservations({ page: currentPage, limit: itemsPerPage });
+        setInquiries(updated.data);
+        setTotalCount(updated.totalCount);
         alert("문의가 삭제되었습니다.");
         setShowInquiryEdit(false);
         setEditingInquiry(null);

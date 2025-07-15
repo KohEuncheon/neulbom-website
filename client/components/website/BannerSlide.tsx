@@ -1,14 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-// 개선된 fetchBanners: page, limit, sort 파라미터 지원
+// 타입 정의
+type Banner = {
+  _id: string;
+  title: string;
+  image: string;
+  link?: string;
+  date?: string;
+};
+
 type FetchBannersParams = {
   page?: number;
   limit?: number;
   sort?: string;
   sortOrder?: string;
 };
-const fetchBanners = async ({ page = 1, limit = 10, sort = 'date', sortOrder = 'desc' }: FetchBannersParams = {}) => {
+
+type FetchBannersResult = {
+  data: Banner[];
+  totalCount: number;
+};
+
+// 캐시를 위한 전역 변수 (함수 인스턴스가 살아있는 동안 유지)
+let bannerCache: FetchBannersResult | null = null;
+let cacheTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5분
+
+const fetchBanners = async ({ page = 1, limit = 10, sort = 'date', sortOrder = 'desc' }: FetchBannersParams = {}): Promise<FetchBannersResult> => {
+  const now = Date.now();
+  
+  // 캐시가 유효하면 캐시 반환
+  if (bannerCache && (now - cacheTime < CACHE_TTL)) {
+    return bannerCache;
+  }
+
   try {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const params = new URLSearchParams();
@@ -16,14 +42,24 @@ const fetchBanners = async ({ page = 1, limit = 10, sort = 'date', sortOrder = '
     params.append('limit', String(limit));
     params.append('sort', sort);
     params.append('sortOrder', sortOrder === 'asc' ? 'asc' : 'desc');
+    
     const apiUrl = isDevelopment
       ? `http://localhost:3001/api/banners?${params.toString()}`
       : `/.netlify/functions/getBannerList?${params.toString()}`;
+    
     const response = await fetch(apiUrl);
     if (response.ok) {
       const result = await response.json();
-      // { data, totalCount }
-      return result;
+      const typedResult: FetchBannersResult = {
+        data: Array.isArray(result.data) ? result.data : [],
+        totalCount: result.totalCount || 0
+      };
+      
+      // 캐시 업데이트
+      bannerCache = typedResult;
+      cacheTime = now;
+      
+      return typedResult;
     } else {
       console.error('배너 데이터 불러오기 실패');
       return { data: [], totalCount: 0 };
@@ -35,40 +71,55 @@ const fetchBanners = async ({ page = 1, limit = 10, sort = 'date', sortOrder = '
 };
 
 export function BannerSlide() {
-  const [banners, setBanners] = useState<any[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 배너 로딩 함수 메모이제이션
+  const loadBanners = useCallback(async () => {
+    setIsLoading(true);
+    const { data, totalCount } = await fetchBanners({
+      page: currentPage,
+      limit: itemsPerPage,
+      sort: 'date',
+      sortOrder: 'desc',
+    });
+    setBanners(data);
+    setTotalCount(totalCount);
+    setCurrentIndex(0);
+    setIsLoading(false);
+  }, [currentPage, itemsPerPage]);
 
   useEffect(() => {
-    // 배너 목록 불러오기
     let isMounted = true;
-    const loadBanners = async () => {
-      const { data, totalCount } = await fetchBanners({
-        page: currentPage,
-        limit: itemsPerPage,
-        sort: 'date',
-        sortOrder: 'desc',
-      });
-      if (isMounted) {
-        setBanners(Array.isArray(data) ? data : []);
-        setTotalCount(totalCount);
-        setCurrentIndex(0); // 페이지 바뀌면 첫 배너로
-      }
+    
+    const loadBannersWithCleanup = async () => {
+      await loadBanners();
+      if (!isMounted) return;
     };
-    loadBanners();
+    
+    loadBannersWithCleanup();
+    
     // 주기적으로 배너 목록 새로고침 (5분마다)
-    const interval = setInterval(loadBanners, 5 * 60 * 1000);
+    const interval = setInterval(() => {
+      if (isMounted) {
+        loadBanners();
+      }
+    }, 5 * 60 * 1000);
+    
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [currentPage, itemsPerPage]);
+  }, [loadBanners]);
 
-  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  // 페이지네이션 계산 메모이제이션
+  const totalPages = useMemo(() => Math.ceil(totalCount / itemsPerPage), [totalCount, itemsPerPage]);
 
-  // 10초마다 슬라이드 변경
+  // 슬라이드 자동 변경
   useEffect(() => {
     if (banners.length > 1) {
       const interval = setInterval(() => {
@@ -81,22 +132,35 @@ export function BannerSlide() {
     }
   }, [banners.length]);
 
-  // 이전 슬라이드로 이동
-  const goToPrevious = () => {
+  // 네비게이션 함수 메모이제이션
+  const goToPrevious = useCallback(() => {
     setCurrentIndex((prevIndex) =>
       prevIndex === 0 ? banners.length - 1 : prevIndex - 1,
     );
-  };
+  }, [banners.length]);
 
-  // 다음 슬라이드로 이동
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     setCurrentIndex((prevIndex) =>
       prevIndex === banners.length - 1 ? 0 : prevIndex + 1,
     );
-  };
+  }, [banners.length]);
 
-  // 배너가 없으면 기본 배너 표시
-  if (banners.length === 0) {
+  const setCurrentIndexHandler = useCallback((index: number) => {
+    setCurrentIndex(index);
+  }, []);
+
+  const setCurrentPageHandler = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  // 현재 배너 메모이제이션
+  const currentBanner = useMemo(() => 
+    banners[currentIndex] || null, 
+    [banners, currentIndex]
+  );
+
+  // 로딩 상태 표시
+  if (isLoading || banners.length === 0) {
     return (
       <section className="px-4">
         <div className="max-w-4xl mx-auto">
@@ -111,8 +175,6 @@ export function BannerSlide() {
       </section>
     );
   }
-
-  const currentBanner = banners[currentIndex];
 
   return (
     <section className="px-4">
@@ -130,6 +192,8 @@ export function BannerSlide() {
                   src={currentBanner.image}
                   alt={currentBanner.title}
                   className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
               </a>
             ) : (
@@ -137,6 +201,8 @@ export function BannerSlide() {
                 src={currentBanner.image}
                 alt={currentBanner.title}
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
             )}
 
@@ -146,12 +212,14 @@ export function BannerSlide() {
                 <button
                   onClick={goToPrevious}
                   className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="이전 배너"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button
                   onClick={goToNext}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="다음 배너"
                 >
                   <ChevronRight className="w-6 h-6" />
                 </button>
@@ -161,26 +229,29 @@ export function BannerSlide() {
             {/* 슬라이드 인디케이터 */}
             {banners.length > 1 && (
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                {Array.isArray(banners) && banners.map((_, index) => (
+                {banners.map((_, index) => (
                   <button
-                    key={index}
-                    onClick={() => setCurrentIndex(index)}
+                    key={`indicator-${index}`}
+                    onClick={() => setCurrentIndexHandler(index)}
                     className={`w-3 h-3 rounded-full transition-colors ${
                       index === currentIndex ? "bg-white" : "bg-white/50"
                     }`}
+                    aria-label={`배너 ${index + 1}로 이동`}
                   />
                 ))}
               </div>
             )}
           </div>
+          
           {/* 페이지네이션 */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-4 gap-2">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
-                  key={page}
+                  key={`page-${page}`}
                   className={`px-3 py-1 rounded ${currentPage === page ? 'bg-pink-400 text-white' : 'bg-white text-pink-400 border border-pink-400'}`}
-                  onClick={() => setCurrentPage(page)}
+                  onClick={() => setCurrentPageHandler(page)}
+                  aria-label={`페이지 ${page}로 이동`}
                 >
                   {page}
                 </button>

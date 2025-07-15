@@ -12,7 +12,7 @@ async function getClient() {
 }
 
 exports.handler = async function(event, context) {
-  throw new Error("Netlify function region: " + (process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION));
+  // throw new Error("Netlify function region: " + (process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION)); // 테스트용 코드 삭제 또는 주석 처리
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',

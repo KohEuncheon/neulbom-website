@@ -1,74 +1,36 @@
 import { Header } from "@/components/website/Header";
 import { Footer } from "@/components/website/Footer";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-// API 호출 함수 - 개발 환경에서는 로컬 서버, 프로덕션에서는 Netlify 함수 사용
-// 개선된 fetchMCs: region, page, limit, sort 파라미터 지원
-type FetchMCsParams = {
-  region?: string;
-  page?: number;
-  limit?: number;
-  sort?: string;
-  sortOrder?: string;
-};
-const fetchMCs = async ({ region, page = 1, limit = 100, sort = 'name', sortOrder = 'asc' }: FetchMCsParams = {}) => {
-  try {
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const params = new URLSearchParams();
-    if (region) params.append('region', region);
-    params.append('page', String(page));
-    params.append('limit', String(limit));
-    params.append('sort', sort);
-    params.append('sortOrder', sortOrder);
-    const apiUrl = isDevelopment
-      ? `http://localhost:3001/api/mcs?${params.toString()}`
-      : `/.netlify/functions/getMCs?${params.toString()}`;
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const result = await response.json();
-      // { data, totalCount }
-      return result;
-    } else {
-      console.error('사회자 데이터 불러오기 실패');
-      return { data: [], totalCount: 0 };
-    }
-  } catch (error) {
-    console.error('사회자 데이터 불러오기 오류:', error);
-    return { data: [], totalCount: 0 };
-  }
-};
+import { useQuery } from "@tanstack/react-query";
+import { getMCs, MC } from "@/shared/api";
 
 export default function MCs() {
   const [selectedRegion, setSelectedRegion] = useState("서울/경기");
-  const [mcProfiles, setMcProfiles] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(12);
-  const [totalCount, setTotalCount] = useState(0);
+  const itemsPerPage = 12;
   const navigate = useNavigate();
   const regions = ["서울/경기", "광주/전남", "대전"];
 
-  // 서버에서 region, page, limit, sort로 MC 목록 받아오기
-  useEffect(() => {
-    let isMounted = true;
-    const loadMCs = async () => {
-      const { data, totalCount } = await fetchMCs({
-        region: selectedRegion,
-        page: currentPage,
-        limit: itemsPerPage,
-        sort: 'name',
-        sortOrder: 'asc',
-      });
-      if (isMounted) {
-        setMcProfiles(Array.isArray(data) ? data : []);
-        setTotalCount(totalCount);
-      }
-    };
-    loadMCs();
-    return () => { isMounted = false; };
-  }, [selectedRegion, currentPage, itemsPerPage]);
+  // React Query로 MC 목록 가져오기
+  const {
+    data,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["mcs", selectedRegion, currentPage, itemsPerPage],
+    queryFn: () => getMCs({
+      region: selectedRegion,
+      page: currentPage,
+      limit: itemsPerPage,
+      sort: "name",
+      sortOrder: "asc",
+    }),
+    // keepPreviousData: true, // 옵션 제거
+  });
 
-  // 페이지네이션 계산
+  const mcProfiles: MC[] = data?.data || [];
+  const totalCount: number = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
@@ -99,27 +61,33 @@ export default function MCs() {
               </button>
             ))}
           </div>
-          {/* 사회자 카드 목록 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-            {mcProfiles.map((mc) => (
-              <div key={mc.id} className="flex flex-col items-center bg-pink-50 rounded-xl shadow-sm p-4">
-                <div className="overflow-hidden rounded-lg w-40 h-52 mb-2 flex items-end justify-center" style={{ background: '#ffe4ef' }}>
-                  <img
-                    src={mc.profileImageBase64 || mc.image || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=400&fit=crop&crop=face"}
-                    alt={mc.name}
-                    className="w-full h-full object-cover object-top"
-                    style={{ marginBottom: 0 }}
-                  />
+          {/* MC 카드 목록 */}
+          {isLoading ? (
+            <div className="text-center text-gray-400 py-12">사회자 목록을 불러오는 중...</div>
+          ) : error ? (
+            <div className="text-center text-red-500 py-12">사회자 데이터를 불러오지 못했습니다.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+              {mcProfiles.map((mc) => (
+                <div key={mc._id} className="flex flex-col items-center bg-pink-50 rounded-xl shadow-sm p-4">
+                  <div className="overflow-hidden rounded-lg w-40 h-52 mb-2 flex items-end justify-center" style={{ background: '#ffe4ef' }}>
+                    <img
+                      src={mc.profileImageBase64 || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=400&fit=crop&crop=face"}
+                      alt={mc.name}
+                      className="w-full h-full object-cover object-top"
+                      style={{ marginBottom: 0 }}
+                    />
+                  </div>
+                  <span
+                    className="mt-1 text-xs"
+                    style={{ color: '#ff69b4', fontWeight: 400, fontSize: '0.95rem', marginTop: '0.2rem' }}
+                  >
+                    {mc.name}사회자
+                  </span>
                 </div>
-                <span
-                  className="mt-1 text-xs"
-                  style={{ color: '#ff69b4', fontWeight: 400, fontSize: '0.95rem', marginTop: '0.2rem' }}
-                >
-                  {mc.name}사회자
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           {/* 페이지네이션 */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-8 gap-2">
