@@ -1,4 +1,4 @@
-[build]
+ne[build]
   command = "npm run build:client"
   functions = "netlify/functions"
   publish = "dist/spa"
@@ -18,3 +18,8 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["express"]
+  region = "ap-northeast-2" # 서울 리전 (AWS 기준)

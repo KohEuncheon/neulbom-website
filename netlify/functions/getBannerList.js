@@ -12,6 +12,7 @@ async function getClient() {
 }
 
 exports.handler = async function(event, context) {
+  throw new Error("Netlify function region: " + (process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION));
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
