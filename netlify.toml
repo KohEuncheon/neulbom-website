@@ -6,7 +6,8 @@
 [functions]
   external_node_modules = ["express"]
   node_bundler = "esbuild"
-  
+  region = "ap-northeast-2" # 서울 리전 (AWS 기준)
+
 # API 라우팅 개선
 [[redirects]]
   from = "/api/*"
@@ -18,8 +19,4 @@
   from = "/*"
   to = "/index.html"
   status = 200
-
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = ["express"]
-  region = "ap-northeast-2" # 서울 리전 (AWS 기준)
+ 
